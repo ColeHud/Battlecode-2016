@@ -9,8 +9,7 @@ public class RobotPlayer
 	{
 		while(true)
 		{
-			Clock.yield();	
-			Integer.MAX_VALUE;
+			Clock.yield();
 		}
 	}
 }
