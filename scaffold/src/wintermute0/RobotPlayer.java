@@ -10,8 +10,46 @@ import battlecode.common.*;
 
 public class RobotPlayer 
 {
-	public static void run(RobotController rc)
+	public static void run(RobotController rc) throws Exception
 	{
-		
+		//set up variables
+		Robot.myTeam = rc.getTeam();
+        Robot.enemy = Robot.myTeam.opponent();
+        Robot.rc = rc;
+        Robot.type = rc.getType();
+        
+        //run methods
+        if(Robot.type == RobotType.ARCHON)
+        {
+        	Archon.run();
+        }
+        else if(Robot.type == RobotType.GUARD)
+        {
+        	Guard.run();
+        }
+        else if(Robot.type == RobotType.SCOUT)
+        {
+        	Scout.run();
+        }
+        else if(Robot.type == RobotType.SOLDIER)
+        {
+        	Soldier.run();
+        }
+        else if(Robot.type == RobotType.TTM)
+        {
+        	TTM.run();
+        }
+        else if(Robot.type == RobotType.TURRET)
+        {
+        	Turret.run();
+        }
+        else if(Robot.type == RobotType.VIPER)
+        {
+        	Viper.run();
+        }
+        else
+        {
+        	throw new Exception("That's not a robot type I'm familiar with.");
+        }
 	}
 }

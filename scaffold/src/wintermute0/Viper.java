@@ -3,8 +3,11 @@ import battlecode.common.*;
 
 public class Viper
 {
-	public static void run(RobotController rc)
+	public static void run()
 	{
-		
+		while(true)
+		{
+			Clock.yield();
+		}
 	}
 }
