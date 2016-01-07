@@ -12,7 +12,10 @@ import java.util.Random;
 /*
  * broadcast message codes
  * 
- * 94572 -> parts at location
+ * 94572 -> parts
+ * 666 -> zombie den
+ * 42 -> enemy archon
+ * 
  */
 
 public class RobotPlayer 

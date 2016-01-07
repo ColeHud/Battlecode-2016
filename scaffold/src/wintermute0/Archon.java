@@ -6,7 +6,11 @@ public class Archon
 	//variables
 	public static RobotController rc = Robot.rc;
 	public static int numScouts = 0;
+	
 	public static MapLocation parts;
+	
+	public static String[] possibleGoals = {"Go to parts", "evade enemy"};
+	public static int goalNum;
 
 	public static void run() throws GameActionException
 	{
@@ -22,7 +26,7 @@ public class Archon
 		}
 	}
 
-	//move to parts
+	//move to parts SUPER LAME, NEEDS TO BE FIXED
 	public static void moveToParts() throws GameActionException 
 	{
 		if(parts != null)
@@ -43,14 +47,13 @@ public class Archon
 				rc.move(dirToParts);
 			}
 
-			if(rc.senseRubble(rc.getLocation().add(dirToParts)) > 50)
+			if(rc.senseRubble(rc.getLocation().add(dirToParts)) >= 50)
 			{
 				if(rc.isCoreReady())
 				{
 					rc.clearRubble(dirToParts);
 				}
 			}
-
 		}
 	}
 
