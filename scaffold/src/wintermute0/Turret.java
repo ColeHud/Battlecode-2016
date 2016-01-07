@@ -1,5 +1,6 @@
 package wintermute0;
 import battlecode.common.*;
+
 import java.util.Random;
 
 public class Turret
@@ -13,7 +14,10 @@ public class Turret
 	public static boolean attackEnemy;
 	public static boolean attackZombies;
 	
-	public static void run()
+	//current target
+	public static MapLocation currentTarget;
+	
+	public static void run() throws GameActionException
 	{
 		random = new Random(rc.getID());
 		
@@ -22,7 +26,50 @@ public class Turret
 		
 		while(true)
 		{
+			receiveSignals();
+			
+			attackFoes();
+			
 			Clock.yield();
+		}
+	}
+	
+	//check surroundings, attack foes
+	public static void attackFoes() throws GameActionException
+	{
+		RobotInfo[] foes = rc.senseHostileRobots(rc.getLocation(), RobotType.TURRET.attackRadiusSquared);
+		
+		if(foes.length > 0)
+		{
+			int randIndex = random.nextInt(foes.length);
+			RobotInfo foe = foes[randIndex];
+			MapLocation loc = foe.location;
+			
+			if(rc.canAttackLocation(loc) && rc.isCoreReady() && rc.isWeaponReady())
+			{
+				rc.attackLocation(loc);
+			}
+		}
+	}
+	
+	//receive signals
+	public static void receiveSignals()
+	{
+		Signal signal = rc.readSignal();
+		if(signal != null)
+		{
+			int[] message = signal.getMessage();
+			if(currentTarget == null)
+			{
+				if(message[0] == 666 && attackZombies)//zombie den
+				{
+					currentTarget = signal.getLocation();
+				}
+				else if(message[0] == 42 && attackEnemy)//enemy archon
+				{
+					currentTarget = signal.getLocation();
+				}
+			}
 		}
 	}
 	
