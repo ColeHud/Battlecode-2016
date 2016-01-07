@@ -72,9 +72,10 @@ public class Scout
 		int distance = rc.getLocation().distanceSquaredTo(spawnpoint) * 2;
 		for(RobotInfo enemy : surroundingEnemies)
 		{
-			if(enemy.type == RobotType.ZOMBIEDEN)
+			if(enemy != null && enemy.type == RobotType.ZOMBIEDEN)
 			{
 				rc.broadcastMessageSignal(666, 666, distance);
+				rc.setIndicatorString(1, "Zombie Den");
 			}
 		}
 	}
@@ -85,9 +86,10 @@ public class Scout
 		int distance = rc.getLocation().distanceSquaredTo(spawnpoint) * 2;
 		for(RobotInfo enemy : surroundingEnemies)
 		{
-			if(enemy.type == RobotType.ARCHON)
+			if(enemy != null && enemy.type == RobotType.ARCHON)
 			{
 				rc.broadcastMessageSignal(42, 42, distance);
+				rc.setIndicatorString(1, "Enemy Archon");
 			}
 		}
 	}
@@ -101,6 +103,7 @@ public class Scout
 		{
 			int distance = rc.getLocation().distanceSquaredTo(spawnpoint) * 2;
 			rc.broadcastMessageSignal(94572, (int)partsAtLocation, distance);
+			rc.setIndicatorString(1, "Parts");
 		}
 	}
 	

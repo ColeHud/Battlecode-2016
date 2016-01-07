@@ -6,9 +6,9 @@ public class Archon
 	//variables
 	public static RobotController rc = Robot.rc;
 	public static int numScouts = 0;
-	
+
 	public static MapLocation parts;
-	
+
 	public static String[] possibleGoals = {"Go to parts", "evade enemy"};
 	public static int goalNum;
 
@@ -22,7 +22,22 @@ public class Archon
 
 			buildTwoScouts();
 
+			buildTurrets();
+
 			Clock.yield();
+		}
+	}
+
+	//build some turrets
+	public static void buildTurrets() throws GameActionException
+	{
+		if(rc.getTeamParts() >= RobotType.TURRET.partCost && Math.random() > .75)
+		{	
+			Direction dirToBuild = Robot.directions[Robot.random.nextInt(Robot.directions.length)];
+			if(rc.canBuild(dirToBuild, RobotType.TURRET) && rc.isCoreReady())
+			{
+				rc.build(dirToBuild, RobotType.TURRET);
+			}
 		}
 	}
 
