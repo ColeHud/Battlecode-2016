@@ -59,7 +59,7 @@ public class Turret
 		if(signal != null)
 		{
 			int[] message = signal.getMessage();
-			if(currentTarget == null)
+			if(currentTarget == null && message != null)
 			{
 				if(message[0] == 666 && attackZombies)//zombie den
 				{

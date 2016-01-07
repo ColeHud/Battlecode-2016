@@ -79,8 +79,9 @@ public class Archon
 		if(signal != null && parts == null)
 		{
 			MapLocation signalLoc = signal.getLocation();
+			int[] message = signal.getMessage();
 			//if it's a parts signal
-			if(signal.getMessage()[0] == 94572)
+			if(message != null && message[0] == 94572)
 			{
 				parts = signalLoc;
 			}
