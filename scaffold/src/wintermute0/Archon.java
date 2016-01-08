@@ -11,11 +11,13 @@ public class Archon
 
 	public static String[] possibleGoals = {"Go to parts", "evade enemy"};
 	public static int goalNum;
-
+	
 	public static void run() throws GameActionException
 	{
 		while(true)
 		{
+			escapeIfNecessary();
+			
 			moveToParts();
 
 			checkMessageForParts();
@@ -57,18 +59,7 @@ public class Archon
 			}
 
 			Direction dirToParts = rc.getLocation().directionTo(parts);
-			if(rc.canMove(dirToParts) && rc.isCoreReady())
-			{
-				rc.move(dirToParts);
-			}
-
-			if(rc.senseRubble(rc.getLocation().add(dirToParts)) >= 50)
-			{
-				if(rc.isCoreReady())
-				{
-					rc.clearRubble(dirToParts);
-				}
-			}
+			tryToMove(dirToParts);
 		}
 	}
 
@@ -101,6 +92,140 @@ public class Archon
 					break;
 				}
 			}
+		}
+	}
+	
+	//go into escape mode until a little away from enemies
+	//if there's a turret-heavy base, should try to go towards that?
+	public static void escapeIfNecessary() throws GameActionException
+	{
+		MapLocation yourLoc = rc.getLocation();
+		RobotInfo[] nearbyHostiles = rc.senseHostileRobots(yourLoc, rc.getType().sensorRadiusSquared);
+		Direction fleeDir;
+		while(nearbyHostiles.length > 0)
+		{	
+			int bufferRounds = 5; //extra rounds to run from hostiles even if can't see them anymore
+			
+			//get average loc of hostiles
+			//could also just run away from the closest hostile
+			//neither one of those would have you go up or down if you have enemies directly to
+			//your left and right
+			int n_hostiles = 0;
+			int x_sum = 0;
+			int y_sum = 0;
+			for(RobotInfo robot : nearbyHostiles)
+			{
+				if((robot.team == Team.ZOMBIE) || (robot.team == Robot.enemy))
+				{
+					n_hostiles ++;
+					MapLocation robotLoc = robot.location;
+					x_sum += robotLoc.x;
+					y_sum += robotLoc.y;
+				}
+			}
+			int x = (int) ((float)x_sum / n_hostiles + 0.5);
+			int y = (int) ((float)y_sum / n_hostiles + 0.5);
+			MapLocation hostileLoc = new MapLocation(x, y);
+			
+			fleeDir = hostileLoc.directionTo(yourLoc);
+			fleeDir = tryToFlee(fleeDir);
+			
+			bufferRounds --;
+			
+			if(bufferRounds == 0)
+			{
+				for(int i = 0; i < bufferRounds; i ++)
+				{
+					fleeDir = tryToFlee(fleeDir);
+				}
+			}
+			
+			Clock.yield(); //so doesn't use too much bytecode
+			yourLoc = rc.getLocation();
+			nearbyHostiles = rc.senseHostileRobots(yourLoc, Robot.type.sensorRadiusSquared);
+		}
+	}
+	
+	public static void tryToMove(Direction direction) throws GameActionException
+	{
+		if (rc.isCoreReady())
+		{
+			if(rc.canMove(direction))
+			{
+				rc.move(direction);
+			}
+			//want 50 or GameConstants.RUBBLE_OBSTRUCTION_THRESH?
+			else if(rc.senseRubble(rc.getLocation().add(direction)) >= 50)
+			{
+				rc.clearRubble(direction);
+			}
+			else //turn a little and try again
+			{
+				Direction newDirection;
+				if (Math.random() > 0.5) {
+					newDirection = direction.rotateLeft();
+				}
+				else
+				{
+					newDirection = direction.rotateRight();
+				}
+				tryToMove(newDirection);
+			}
+		}
+	}
+	
+	//like tryToRun only does not bother to clear rubble, just run, run away!
+	//also returns last direction so can be used to run in same direction later on
+	public static Direction tryToFlee(Direction direction) throws GameActionException
+	{
+		if (rc.isCoreReady())
+		{
+			if(rc.canMove(direction))
+			{
+				rc.move(direction);
+				return direction;
+			}
+			else //turn a little and try again
+			{
+				Direction newDirection;
+				if (Math.random() > 0.5) {
+					newDirection = direction.rotateLeft();
+				}
+				else
+				{
+					newDirection = direction.rotateRight();
+				}
+				tryToFlee(newDirection);
+			}
+		}
+		Clock.yield();
+		tryToFlee(direction); //try again
+		return direction; //never reached but compiler wouldn't eat this without it
+	}
+	
+	//get to a loc and come back, if see enemies then just run
+	public static void cautiousBoomerang(MapLocation goalLoc) throws GameActionException
+	{
+		//record initial location
+		MapLocation initialLoc = rc.getLocation();
+		
+		tiptoeToLoc(goalLoc);
+		tiptoeToLoc(initialLoc);
+	}
+	
+	//get to loc, if you see any enemies then run away
+	public static void tiptoeToLoc(MapLocation goalLoc) throws GameActionException
+	{
+		//need some limit, might be impossible to get there for some reason
+		int maxMoves = 20;
+		MapLocation currentLoc = rc.getLocation();
+		while(currentLoc != goalLoc && maxMoves > 0)
+		{
+			escapeIfNecessary();
+			Direction dirToGoal = currentLoc.directionTo(goalLoc);
+			tryToMove(dirToGoal);
+			currentLoc = rc.getLocation();
+			maxMoves --;
 		}
 	}
 }
