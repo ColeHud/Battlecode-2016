@@ -6,10 +6,11 @@ public class Soldier
 	//variables
 	public static RobotController rc = Robot.rc;
 	
-	public static void run()
+	public static void run() throws GameActionException
 	{
 		while(true)
 		{
+			Robot.attackFoes();
 			Clock.yield();
 		}
 	}

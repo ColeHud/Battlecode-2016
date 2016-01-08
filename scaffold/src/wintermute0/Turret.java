@@ -28,27 +28,9 @@ public class Turret
 		{
 			receiveSignals();
 			
-			attackFoes();
+			Robot.attackFoes();
 			
 			Clock.yield();
-		}
-	}
-	
-	//check surroundings, attack foes
-	public static void attackFoes() throws GameActionException
-	{
-		RobotInfo[] foes = rc.senseHostileRobots(rc.getLocation(), RobotType.TURRET.attackRadiusSquared);
-		
-		if(foes.length > 0)
-		{
-			int randIndex = random.nextInt(foes.length);
-			RobotInfo foe = foes[randIndex];
-			MapLocation loc = foe.location;
-			
-			if(rc.canAttackLocation(loc) && rc.isCoreReady() && rc.isWeaponReady())
-			{
-				rc.attackLocation(loc);
-			}
 		}
 	}
 	
