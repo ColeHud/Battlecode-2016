@@ -90,6 +90,7 @@ public class RobotPlayer {
         }
     }
     
+    //Not used yet, seems to be too much bytecode, how to sneak it in?
     private static void tryToRepair(RobotController rc, Team myTeam, Random random) throws GameActionException {
     	RobotInfo[] nearbyFriendlies = rc.senseNearbyRobots(rc.getType().sensorRadiusSquared, myTeam);
     	if(nearbyFriendlies.length > 0){
