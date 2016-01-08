@@ -33,23 +33,23 @@ public class RobotPlayer {
         
         if (rcType == RobotType.ARCHON) {
         	while(true) {
+            	// If you see an enemy then broadcast its loc and try to move away
         		if(! tellOfEnemiesAndRun(rc, enemyTeam)) {
+                	// Else some of the time try to move around, go where lots of parts
         			if(Math.random() < 0.33) {
         				moveRandomly(rc, directions, random);
+                    // Sometimes build
         			} else {
+                		// Sometimes work on a fortress of turrets
         				if(Math.random() > 0.4) {
         					addTurretToFortress(rc, random, directions);
+                    	// Other times build other units weighted by usefulness
         				} else {
         					buildRandomUnit(rc, random, clumpingTypes, directions);
         				}
         			}
         		}
-        	// If you see an enemy then broadcast its loc and try to move away
-        	// Else some of the time try to move around, go where lots of parts
-        	// Some of the time build
-        		// If around turrets, mostly build fortress of turrets
-        		// Build other units weighted by usefulness, every now and then a turret
-        		Clock.yield();
+        		Clock.yield();		
         	}
         } else if (rcType == RobotType.SCOUT) {
         	while(true) {
@@ -90,6 +90,13 @@ public class RobotPlayer {
         }
     }
     
+    private static void tryToRepair(RobotController rc, Team myTeam, Random random) throws GameActionException {
+    	RobotInfo[] nearbyFriendlies = rc.senseNearbyRobots(rc.getType().sensorRadiusSquared, myTeam);
+    	if(nearbyFriendlies.length > 0){
+    		rc.repair(nearbyFriendlies[random.nextInt(nearbyFriendlies.length)].location);
+    	}
+    }
+
 	public static void attack(RobotController rc, MapLocation loc) throws GameActionException {
 		if(rc.canAttackLocation(loc) && rc.isCoreReady() && rc.isWeaponReady()) {
 			rc.attackLocation(loc);
@@ -130,6 +137,7 @@ public class RobotPlayer {
 
     		bufferRounds --;
 
+    		Clock.yield(); //so doesn't use too much bytecode
     		if(bufferRounds == 0) {
     			for(int i = 0; i < bufferRounds; i ++) {
     				fleeDir = tryToFlee(rc, fleeDir);
@@ -137,7 +145,6 @@ public class RobotPlayer {
     			return true;
     		}
 
-    		Clock.yield(); //so doesn't use too much bytecode
     		yourLoc = rc.getLocation();
     		nearbyHostiles = rc.senseHostileRobots(yourLoc, rc.getType().sensorRadiusSquared);
     	}
@@ -165,26 +172,26 @@ public class RobotPlayer {
     }
     
     public static void buildRandomUnit(RobotController rc, Random random, RobotType[] units, Direction[] directions) throws GameActionException {
-		if (rc.getCoreDelay() < 1) {
-			// Choose a random unit to build
-            RobotType typeToBuild = units[random.nextInt(units.length)];
-            buildUnit(rc, random, typeToBuild, directions);
-		}
+		// Choose a random unit to build
+        RobotType typeToBuild = units[random.nextInt(units.length)];
+        buildUnit(rc, random, typeToBuild, directions);
 	}
     
     public static void buildUnit(RobotController rc, Random random, RobotType typeToBuild, Direction[] directions) throws GameActionException {
-    	// Check for sufficient parts
-    	if (rc.hasBuildRequirements(typeToBuild)) {
-    		// Choose a random direction to try to build in
-    		Direction dirToBuild = directions[random.nextInt(directions.length)];
-    		for (int i = 0; i < 8; i++) {
-    			// If possible, build in this direction
-    			if (rc.canBuild(dirToBuild, typeToBuild)) {
-    				rc.build(dirToBuild, typeToBuild);
-    				break;
-    			} else {
-    				// Rotate the direction to try
-    				dirToBuild = dirToBuild.rotateLeft();
+    	if (rc.getCoreDelay() < 1) {
+    		// Check for sufficient parts
+    		if (rc.hasBuildRequirements(typeToBuild)) {
+    			// Choose a random direction to try to build in
+    			Direction dirToBuild = directions[random.nextInt(directions.length)];
+    			for (int i = 0; i < 8; i++) {
+    				// If possible, build in this direction
+    				if (rc.canBuild(dirToBuild, typeToBuild)) {
+    					rc.build(dirToBuild, typeToBuild);
+    					break;
+    				} else {
+    					// Rotate the direction to try
+    					dirToBuild = dirToBuild.rotateLeft();
+    				}
     			}
     		}
     	}
