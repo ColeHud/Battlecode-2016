@@ -67,7 +67,7 @@ public class RobotPlayer {
         	// Can move around? Go near other turrets? If packed and see enemy then unpack
        
         // } else if (rcType == RobotType.SOLDIER) {
-        // Special things for ranged guys?
+        	// Special things for ranged guys?
         // } else if (rcType == RobotType.VIPER) {
         	// Only attack sometimes? Don't want lots of zombies.
         
@@ -80,6 +80,7 @@ public class RobotPlayer {
         				guardFriendlyArchon(nearbyRobots, rc, myTeam);
         			} else if (! tryCheckMessagesAndInvestigate(rc, myTeam))
         				if (! trySeeAndTellAndInvestigate(nearbyRobots, rc, enemyTeam)) {
+        					//Should move around randomly more?
         					if (! tryGoTowardsFriendlies(nearbyRobots, rc, myTeam, clumpingTypes)) {
         						moveRandomly(rc, directions, random);
         					}

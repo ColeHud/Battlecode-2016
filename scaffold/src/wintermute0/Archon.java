@@ -22,7 +22,7 @@ public class Archon
 
 			checkMessageForParts();
 
-			buildTwoScouts();
+			buildArchonEyes();
 
 			buildTurrets();
 
@@ -79,14 +79,15 @@ public class Archon
 		}	
 	}
 
-	//build 2 scouts for each archon
-	public static void buildTwoScouts() throws GameActionException
+	//build some scouts for each archon
+	public static void buildArchonEyes() throws GameActionException
 	{
-		if(numScouts < 2)
+		int numArchonEyes = 2;
+		if(numScouts < numArchonEyes)
 		{
 			for(Direction d : Robot.directions)
 			{
-				if(rc.canBuild(d, RobotType.SCOUT) && numScouts < 2 && rc.isCoreReady())
+				if(rc.canBuild(d, RobotType.SCOUT) && numScouts < numArchonEyes && rc.isCoreReady())
 				{
 					rc.build(d, RobotType.SCOUT);
 					numScouts++;
