@@ -9,7 +9,6 @@ public class Archon
 	public static boolean hasBuiltScout = false;
 	public static RobotController rc;
 	public static ArrayList<MapLocation> locationsWithParts = new ArrayList<MapLocation>();
-	public static ArrayList<MapLocation> nearbyLocations = new ArrayList<MapLocation>();
 
 	public static void run() throws GameActionException
 	{
@@ -22,8 +21,7 @@ public class Archon
 			 * INPUT
 			 */
 			//sense locations around you
-			MapLocation[] nearbyMapLocationsArray = MapLocation.getAllMapLocationsWithinRadiusSq(rc.getLocation(), rc.getType().sensorRadiusSquared);
-			nearbyLocations = Utility.arrayToArrayList(nearbyMapLocationsArray);
+			MapLocation[] nearbyMapLocations = MapLocation.getAllMapLocationsWithinRadiusSq(rc.getLocation(), rc.getType().sensorRadiusSquared);
 			
 			//read signals
 			Signal[] signals = rc.emptySignalQueue();
@@ -52,6 +50,7 @@ public class Archon
 			//check stats
 			double health = rc.getHealth();
 			int infectedTurns = rc.getInfectedTurns();
+			int robotsAlive = rc.getRobotCount();
 			
 			/*
 			 * OUPUT
