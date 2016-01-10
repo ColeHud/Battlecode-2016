@@ -15,7 +15,7 @@ public class Soldier
 
 		while(true)
 		{
-
+			
 			Clock.yield();
 		}
 	}
