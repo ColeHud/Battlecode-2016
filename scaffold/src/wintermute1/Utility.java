@@ -15,4 +15,15 @@ public class Utility
 		}
 		return directions;
 	}
+	
+	//maplocation array to arraylist
+	public static ArrayList<MapLocation> arrayToArrayList(MapLocation[] locations)
+	{
+		ArrayList<MapLocation> returnArrayList = new ArrayList<MapLocation>();
+		for(MapLocation location : locations)
+		{
+			returnArrayList.add(location);
+		}
+		return returnArrayList;
+	}
 }
