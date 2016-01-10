@@ -9,27 +9,29 @@ import java.util.*;
 public class RobotPlayer 
 {
 	public static RobotType myType;
+	public static RobotController rc;
 	
-	public static void run(RobotController rc) throws Exception
+	public static void run(RobotController robotController) throws Exception
 	{
+		rc = robotController;
 		myType = rc.getType();
 		
 		//run methods
         if(myType == RobotType.ARCHON)
         {
-        	
+        	Archon.run();
         }
         else if(myType == RobotType.SCOUT)
         {
-        	
+        	Scout.run();
         }
         else if(myType == RobotType.SOLDIER)
         {
-        	
+        	Soldier.run();
         }
         else if(myType == RobotType.TURRET)
         {
-        	
+        	Turret.run();
         }
         else
         {
