@@ -10,6 +10,10 @@ public class Utility
 	public static final int PARTS_CODE = 94572;
 	public static final int SOLDIER_HELP_CODE = 97525;
 	
+	public static final double PERCENTAGE_TURRETS = .2;
+	public static final double PERCENTAGE_SOLDIERS = 1;
+	public static final int MAX_FOES_TO_BUILD = 0;
+	
 	//get an arraylist of directions
 	public static ArrayList<Direction> arrayListOfDirections()
 	{
