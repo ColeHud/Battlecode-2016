@@ -3,13 +3,6 @@ import battlecode.common.*;
 
 import java.util.*;
 
-/* MESSAGES
- * 84031 = Zombie den
- * 42650 = Enemy Archon
- * 94572 = parts
- * 97525 = soldierMessageInt
- */
-
 
 
 public class Archon 
@@ -38,7 +31,7 @@ public class Archon
 			{
 				//check if the signal has parts at the location
 				int[] message = signal.getMessage();
-				if(message != null && message[0] == 94572)
+				if(message != null && message[0] == Utility.PARTS_CODE)
 				{
 					//add that location to the locationsWithParts arraylist
 					locationsWithParts.add(signal.getLocation());
