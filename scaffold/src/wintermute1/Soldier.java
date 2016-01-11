@@ -1,5 +1,5 @@
 //has momentum but can set to 0
-//special archon guards not implemented yet, first see how the basic guys work
+//protectors not implemented yet, first see how the basic guys work
 
 package wintermute1;
 import battlecode.common.*;
@@ -19,7 +19,7 @@ public class Soldier
 	public static int numDirections = directions.length;
 	public static int maxMomentum = 0; //how many turns to keep going in a direction, if no guidance to change it
 	public static int momentum = maxMomentum;
-	//public static float probGuard = 0.2;
+	//public static float probProtector = 0.2;
 	
 	// continues might be a bad idea
 	public static void run() throws GameActionException
@@ -27,8 +27,8 @@ public class Soldier
 		rc = RobotPlayer.rc;
 		rand = new Random(rc.getID());
 		
-		//NOT DONE: split into guards (20%) and fighters (80%)
-		//boolean isGuard = rand.nextFloat() < probGuard;
+		//NOT DONE: make some (20%) into protectors
+		//boolean isProtector = rand.nextFloat() < probProtector;
 		
 		MapLocation goalLoc = new MapLocation(-1, -1); // MapLocation(-1, -1) used as "no location" or null
 		Direction dirToMove = Direction.NONE;
