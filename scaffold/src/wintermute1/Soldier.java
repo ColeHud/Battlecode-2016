@@ -20,8 +20,9 @@ public class Soldier
 	public static int numDirections = directions.length;
 	public static int maxMomentum = 0; //how many turns to keep going in a direction, if no guidance to change it
 	public static int momentum = maxMomentum;
-	//public static float probProtector = 0.2;
-	
+	//public static float probProtector = 0.2; //might change based on GameConstants.NUMBER_OF_ARCHONS_MAX
+											   //not sure if that's the max for the specific map
+											   //should protect a specific archon? Don't think that's a great idea
 	// continues might be a bad idea
 	public static void run() throws GameActionException
 	{
@@ -106,12 +107,12 @@ public class Soldier
 							{
 								momentum --; //should do this here or only when have moved?
 							}
-							while((timesRotated < numDirections - 1) && (! done))
+							while((timesRotated < numDirections) && (! done))
 							{
 								double rubble = rc.senseRubble(myLoc.add(dirToMove));
 								if(rubble > GameConstants.RUBBLE_OBSTRUCTION_THRESH)
 								{
-									if(rubble > tooMuchRubble) //try another direction
+									if(rubble >= tooMuchRubble) //try another direction
 									{
 										dirToMove = turn(dirToMove, turnLeft);
 										timesRotated ++;
@@ -159,11 +160,11 @@ public class Soldier
 								offCourse = false;
 							}
 							//most of the code is copied from moving randomly (see above)
-							//but has no momentum, chose start direction, have to toggle offCourse
+							//but has no momentum, start direction is towards goal, and have to toggle offCourse
 							int timesRotated = 0;
 							boolean done = false; //whether or not has moved or cleared some rubble
 							boolean turnLeft = rand.nextBoolean(); //if true keep turning left, if false keep turning right
-							while((timesRotated < numDirections - 1) && (! done))
+							while((timesRotated < numDirections) && (! done))
 							{
 								double rubble = rc.senseRubble(myLoc.add(dirToMove));
 								if(rubble >= GameConstants.RUBBLE_OBSTRUCTION_THRESH)
