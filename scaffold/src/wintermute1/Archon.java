@@ -10,6 +10,7 @@ public class Archon
 	public static RobotController rc;
 	public static ArrayList<MapLocation> locationsWithParts = new ArrayList<MapLocation>();
 	public static MapLocation goal = null;
+	public static RobotType typeToBuild = RobotType.SOLDIER;
 
 	public static void run() throws GameActionException
 	{
@@ -84,16 +85,26 @@ public class Archon
 			}
 			
 			//check if you should build
-			if(foes.size() <= Utility.MAX_FOES_TO_BUILD)
+			if(foes.size() <= Utility.MAX_FOES_TO_BUILD && goal == null && rc.getTeamParts() > RobotType.TURRET.partCost)
 			{
-				double percent = rand.nextFloat();
-				if(percent < Utility.PERCENTAGE_TURRETS) //build turret
+				//if the current type to build != null, build one of that type
+				if(typeToBuild != null && rc.hasBuildRequirements(typeToBuild))
 				{
-					buildRobot(RobotType.TURRET);
+					buildRobot(typeToBuild);
+					typeToBuild = null;
 				}
-				else //build a soldier
+				else
 				{
-					buildRobot(RobotType.SOLDIER);
+					double percent = Math.random();
+					rc.setIndicatorString(0, percent + "");
+					if(percent <= Utility.PERCENTAGE_TURRETS) //build turret
+					{
+						typeToBuild = RobotType.TURRET;
+					}
+					else //build a soldier
+					{
+						typeToBuild = RobotType.SOLDIER;
+					}
 				}
 			}
 			
