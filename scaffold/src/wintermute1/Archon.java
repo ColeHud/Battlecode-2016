@@ -3,6 +3,15 @@ import battlecode.common.*;
 
 import java.util.*;
 
+/* MESSAGES
+ * 84031 = Zombie den
+ * 42650 = Enemy Archon
+ * 94572 = parts
+ * 97525 = soldierMessageInt
+ */
+
+
+
 public class Archon 
 {
 	public static Random rand;
@@ -59,12 +68,7 @@ public class Archon
 			//move
 				//move away from enemies
 				//move to parts
-			if(foes.size() > 0) // if there are enemies
-			{
-				//move to the point that gets you farthest away from them out of the 8 directions you can move
-				Direction[] possibleDirections = Direction.values();
-				
-			}
+			
 			
 			
 			//build

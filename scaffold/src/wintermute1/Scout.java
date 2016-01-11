@@ -3,6 +3,13 @@ import battlecode.common.*;
 
 import java.util.*;
 
+/* MESSAGES
+ * 84031 = Zombie den
+ * 42650 = Enemy Archon
+ * 94572 = parts
+ * 97525 = soldierMessageInt
+ */
+
 public class Scout 
 {
 	public static Random rand;
