@@ -61,7 +61,7 @@ public class RobotPlayer {
         	}
         } else if (rcType == RobotType.TURRET) {
         	while(true) {
-        		boolean unused = tryAttackAndTell(rc, enemyTeam, random);
+        		tryAttackAndTell(rc, enemyTeam, random);
         		Clock.yield();
         	}
         	// Can move around? Go near other turrets? If packed and see enemy then unpack
@@ -81,9 +81,9 @@ public class RobotPlayer {
         			} else if (! tryCheckMessagesAndInvestigate(rc, myTeam))
         				if (! trySeeAndTellAndInvestigate(nearbyRobots, rc, enemyTeam)) {
         					//Should move around randomly more?
-        					if (! tryGoTowardsFriendlies(nearbyRobots, rc, myTeam, clumpingTypes)) {
+        					//if (! tryGoTowardsFriendlies(nearbyRobots, rc, myTeam, clumpingTypes)) {
         						moveRandomly(rc, directions, random);
-        					}
+        					//}
         				}
         		}
         		Clock.yield();
@@ -100,7 +100,7 @@ public class RobotPlayer {
     }
 
 	public static void attack(RobotController rc, MapLocation loc) throws GameActionException {
-		if(rc.canAttackLocation(loc) && rc.isCoreReady() && rc.isWeaponReady()) {
+		if(rc.isWeaponReady() && rc.canAttackLocation(loc)) {
 			rc.attackLocation(loc);
 		}
 	}

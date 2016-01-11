@@ -3,6 +3,10 @@ import battlecode.common.*;
 
 import java.util.*;
 
+/* Rough overview of what the turrets will do: 
+ * 
+ */
+
 public class Turret 
 {
 	public static Random rand;
@@ -15,7 +19,10 @@ public class Turret
 
 		while(true)
 		{
-
+			// check messages for enemy within sight range but not attack range
+			// pack up if enemies too close and move away (still stay a little away from archons)
+			// unpack if there aren't any enemies too close
+			// clump with other turrets?
 			Clock.yield();
 		}
 	}
