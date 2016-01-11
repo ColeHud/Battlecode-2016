@@ -90,18 +90,18 @@ public class Scout
 		{
 			if(foe.type == RobotType.ZOMBIEDEN)// Zombie den
 			{
-				rc.broadcastMessageSignal(666, 666, broadcastRange);
+				rc.broadcastMessageSignal(Utility.ZOMBIE_DEN_CODE, Utility.ZOMBIE_DEN_CODE, broadcastRange);
 			}
 			else if(foe.type == RobotType.ARCHON)//Archon
 			{
-				rc.broadcastMessageSignal(42, 42, broadcastRange);
+				rc.broadcastMessageSignal(Utility.ENEMY_ARCHON_CODE, Utility.ENEMY_ARCHON_CODE, broadcastRange);
 			}
 		}
 		
 		//parts
 		if(rc.senseParts(currentLocation) > 10)
 		{
-			rc.broadcastMessageSignal(94572, 94572, broadcastRange);
+			rc.broadcastMessageSignal(Utility.PARTS_CODE, Utility.PARTS_CODE, broadcastRange);
 		}
 	}
 	
