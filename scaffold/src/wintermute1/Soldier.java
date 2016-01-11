@@ -1,6 +1,3 @@
-//has momentum but can set to 0
-//protectors not implemented yet, first see how the basic guys work
-
 package wintermute1;
 import battlecode.common.*;
 
@@ -9,6 +6,10 @@ import java.util.*;
 /* Rough overview of what the soldiers will do: 
  * 
  */
+
+//has momentum but can set to 0
+//protectors not implemented yet, first see how the basic guys work
+//all have to stay a little away from archons
 
 public class Soldier 
 {

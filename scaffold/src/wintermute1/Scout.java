@@ -8,6 +8,7 @@ public class Scout
 	public static Random rand;
 	public static RobotController rc;
 	public static MapLocation spawn;
+	public static int minPartsToGet = 10;
 
 	public static void run() throws GameActionException
 	{
@@ -92,7 +93,7 @@ public class Scout
 		}
 		
 		//parts
-		if(rc.senseParts(currentLocation) > 10)
+		if(rc.senseParts(currentLocation) >= minPartsToGet)
 		{
 			rc.broadcastMessageSignal(Utility.PARTS_CODE, Utility.PARTS_CODE, broadcastRange);
 		}

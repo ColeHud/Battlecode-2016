@@ -3,8 +3,6 @@ import battlecode.common.*;
 
 import java.util.*;
 
-
-
 public class Archon 
 {
 	public static Random rand;
