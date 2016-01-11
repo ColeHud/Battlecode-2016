@@ -4,6 +4,12 @@ import java.util.*;
 
 public class Utility 
 {
+	//message ints
+	public static final int ZOMBIE_DEN_CODE = 84031;
+	public static final int ENEMY_ARCHON_CODE = 42650;
+	public static final int PARTS_CODE = 94572;
+	public static final int SOLDIER_HELP_CODE = 97525;
+	
 	//get an arraylist of directions
 	public static ArrayList<Direction> arrayListOfDirections()
 	{
