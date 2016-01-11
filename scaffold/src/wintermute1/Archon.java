@@ -9,6 +9,7 @@ public class Archon
 	public static boolean hasBuiltScout = false;
 	public static RobotController rc;
 	public static ArrayList<MapLocation> locationsWithParts = new ArrayList<MapLocation>();
+	public static MapLocation goal = null;
 
 	public static void run() throws GameActionException
 	{
@@ -56,17 +57,66 @@ public class Archon
 			 * OUPUT
 			 */
 			
-			//move
-				//move away from enemies
-				//move to parts
+			//movement
+				//calculate the goal
+				//then move there
+		
+					//move away from enemies
+					//move to parts
+					//move to defensive locations
 			
+			//if there are no foes, move randomly
+			if(foes.size() == 0)
+			{
+				//move randomly
+			}
+			else // if there are foes, find the quickest path to get away
+			{
+				
+			}
 			
 			
 			//build
+			if(hasBuiltScout == false)//build a scout if you haven't built one yet
+			{
+				buildRobot(RobotType.SCOUT);
+				hasBuiltScout = true;
+			}
+			
+			//check if you should build
+			if(foes.size() <= Utility.MAX_FOES_TO_BUILD)
+			{
+				double percent = rand.nextFloat();
+				if(percent < Utility.PERCENTAGE_TURRETS) //build turret
+				{
+					buildRobot(RobotType.TURRET);
+				}
+				else //build a soldier
+				{
+					buildRobot(RobotType.SOLDIER);
+				}
+			}
 			
 			//signal
 			
 			Clock.yield();
+		}
+	}
+	
+	//build a robot of a given type
+	public static void buildRobot(RobotType type) throws GameActionException
+	{
+		if(rc.isCoreReady() && rc.hasBuildRequirements(type))
+		{
+			Direction[] values = Direction.values();
+			for(Direction dir : values)
+			{
+				if(rc.canBuild(dir, type))
+				{
+					rc.build(dir, type);
+					return;
+				}
+			}
 		}
 	}
 }

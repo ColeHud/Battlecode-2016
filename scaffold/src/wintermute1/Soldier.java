@@ -99,7 +99,7 @@ public class Soldier
 							boolean turnLeft = rand.nextBoolean(); //if true keep turning left, if false keep turning right
 							if(momentum <= 0 || dirToMove == Direction.NONE)
 							{
-								dirToMove = directions[rand.nextInt() % numDirections]; //random dir
+								dirToMove = directions[rand.nextInt(directions.length)]; //random dir
 								momentum = maxMomentum; //reset momentum
 							}
 							else
