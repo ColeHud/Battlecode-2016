@@ -6,6 +6,13 @@ import java.util.*;
 //By Joseph Gnehm and Cole Hudson
 //wintermute 1 builds off of things learned from wintermute 0, badplayer, and sillyplayer
 
+/* MESSAGES
+ * 84031 = Zombie den
+ * 42650 = Enemy Archon
+ * 94572 = parts
+ * 97525 = soldierMessageInt
+ */
+
 public class RobotPlayer 
 {
 	public static RobotType myType;
