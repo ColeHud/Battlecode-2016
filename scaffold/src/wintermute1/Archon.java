@@ -121,23 +121,27 @@ public class Archon
 				else if(goal == null)//if there aren't and there is no goal
 				{
 					//build something or find new parts
-					//75% build, 25% new parts
-					if(locationsWithParts.size() > 0 && Math.random() > .9)
+					//80% build, 20% new parts
+					if(locationsWithParts.size() > 0 && rand.nextFloat() > .8)
 					{
 						goal = locationsWithParts.get(0);
 						locationsWithParts.remove(0);
 						goalIsASafeLocation = false;
 					}
-					else
-					{
-						buildRobots();
-					}
-
 					//calculate the next goal - maybe a new parts location you got via signal
 				}
 				else if(goal != null)//if there is a goal, move there
 				{
-					moveToLocation(goal);
+					//either move or build. 70% build 30% move
+					double percent = rand.nextFloat();
+					if(percent > .7)
+					{
+						moveToLocation(goal);
+					}
+					else
+					{
+						buildRobots();
+					}
 				}
 			}
 			else//there are foes nearby
@@ -222,7 +226,7 @@ public class Archon
 			Direction directionToEnemies = directions.get(averageDirection);
 			
 			//move in that direction as far as you can see
-			MapLocation locationToGoTo = currentLocation.add(directionToEnemies.opposite(), (int)Math.sqrt(RobotType.ARCHON.sensorRadiusSquared) / 2);
+			MapLocation locationToGoTo = currentLocation.add(directionToEnemies.opposite(), (int)Math.sqrt(RobotType.ARCHON.sensorRadiusSquared));
 			return locationToGoTo;
 		}
 		else
@@ -272,7 +276,10 @@ public class Archon
 			{
 				if(rc.isCoreReady())
 				{
-					rc.clearRubble(actualDirectionToMove);
+					if(actualDirectionToMove.equals(Direction.OMNI) == false)
+					{
+						rc.clearRubble(actualDirectionToMove);
+					}
 				}
 			}
 			else //if not, path around it
