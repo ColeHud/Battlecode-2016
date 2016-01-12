@@ -25,6 +25,9 @@ public class Archon
 			//sense locations around you
 			MapLocation[] nearbyMapLocations = MapLocation.getAllMapLocationsWithinRadiusSq(rc.getLocation(), rc.getType().sensorRadiusSquared);
 			
+			//parts locations 
+			MapLocation[] nearbyPartsLocations = rc.sensePartLocations(RobotType.ARCHON.sensorRadiusSquared);
+			
 			//read signals
 			Signal[] signals = rc.emptySignalQueue();
 			for(Signal signal : signals)
@@ -39,15 +42,24 @@ public class Archon
 			}
 			
 			//sense robots
+			MapLocation myLoc = rc.getLocation();
 			RobotInfo[] robots = rc.senseNearbyRobots();
 			ArrayList<RobotInfo> foes = new ArrayList<RobotInfo>();
+			ArrayList<RobotInfo> foesWithinAttackRange = new ArrayList<RobotInfo>();
 			for(RobotInfo robot : robots)
 			{
 				if(robot.team == Team.ZOMBIE || robot.team == rc.getTeam().opponent())//if the robot is a foe
 				{
 					foes.add(robot);
+					
+					if(myLoc.distanceSquaredTo(robot.location) < robot.type.attackRadiusSquared)
+					{
+						foesWithinAttackRange.add(robot);
+					}
 				}
 			}
+			int nearbyFoes = foes.size();
+			int nearbyFoesInAttackRange = foesWithinAttackRange.size();
 			
 			//check stats
 			double health = rc.getHealth();
@@ -58,6 +70,19 @@ public class Archon
 			 * OUPUT
 			 */
 			
+			//find the nearest mapLocation with the most parts
+			double maxParts = 0;
+			MapLocation nearbyLocationWithMostParts = null;
+			for(MapLocation loc : nearbyPartsLocations)
+			{
+				double partsAtLoc = rc.senseParts(loc);
+				if(partsAtLoc > maxParts)
+				{
+					maxParts = partsAtLoc;
+					nearbyLocationWithMostParts = loc;
+				}
+			}
+			
 			//movement
 				//calculate the goal
 				//then move there
@@ -66,16 +91,10 @@ public class Archon
 					//move to parts
 					//move to defensive locations
 			
-			//if there are no foes, move randomly
-			if(foes.size() == 0)
-			{
-				//move randomly
-			}
-			else // if there are foes, find the quickest path to get away
+			if(nearbyFoes == 0)
 			{
 				
 			}
-			
 			
 			//build
 			if(hasBuiltScout == false)//build a scout if you haven't built one yet
