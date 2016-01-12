@@ -60,7 +60,12 @@ public class Soldier
 				break;
 			}
 		}
-		dirToMove = makerArchon.location.directionTo(myLoc); //away from Archon
+		
+		if(makerArchon != null)
+		{
+			dirToMove = makerArchon.location.directionTo(myLoc); //away from Archon        THERE'S A NULL POINTER EXCEPTION HERE
+		}
+		
 		int movesAwayFromArchon = 2;
 		while(movesAwayFromArchon > 0)
 		{
