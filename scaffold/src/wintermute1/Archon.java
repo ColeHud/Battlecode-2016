@@ -118,8 +118,17 @@ public class Archon
 				}
 				else if(goal == null)//if there aren't and there is no goal
 				{
-					//build something
-					buildRobots();
+					//build something or find new parts
+					//75% build, 25% new parts
+					if(locationsWithParts.size() > 0 && Math.random() > .75)
+					{
+						goal = locationsWithParts.get(0);
+						locationsWithParts.remove(0);
+					}
+					else
+					{
+						buildRobots();
+					}
 
 					//calculate the next goal - maybe a new parts location you got via signal
 				}
@@ -127,14 +136,17 @@ public class Archon
 				{
 					moveToLocation(goal);
 				}
-				
 			}
 			else
 			{
+				if(rc.getLocation().distanceSquaredTo(goal) < 2)
+				{
+					goal = null;
+				}
+				
 				//there are nearby bots that will attack. Run Away!!!
 				goal = findSaferLocation();
 				moveToLocation(goal);
-
 			}
 			
 			Clock.yield();
@@ -177,7 +189,7 @@ public class Archon
 		Direction direction = directions.get(directionWithLeastEnemies);//the direction with the fewest enemies
 		
 		//move in that direction as far as you can see
-		MapLocation locationToGoTo = currentLocation.add(direction, (int)Math.sqrt(RobotType.ARCHON.sensorRadiusSquared));
+		MapLocation locationToGoTo = currentLocation.add(direction, (int)Math.sqrt(RobotType.ARCHON.sensorRadiusSquared) / 2);
 		return locationToGoTo;
 	}
 	
