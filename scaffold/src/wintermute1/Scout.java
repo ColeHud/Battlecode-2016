@@ -94,7 +94,7 @@ public class Scout
 		}
 		
 		//parts
-		if(rc.senseParts(currentLocation) >= minPartsToGet || rc.sensePartLocations(200).length >= minPartsToGet)
+		if(rc.senseParts(currentLocation) >= minPartsToGet)
 		{
 			rc.broadcastMessageSignal(Utility.PARTS_CODE, Utility.PARTS_CODE, broadcastRange);
 		}
