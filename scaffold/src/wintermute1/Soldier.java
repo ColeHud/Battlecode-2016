@@ -11,10 +11,11 @@ import java.util.*;
 //protectors not implemented yet, first see how the basic guys work
 //all have to stay a little away from archons
 //could make them clump or swarm more?
+//can use null instead of special null MapLocation
 
 //move constants and all that inside or outside
 
-public class Soldier 
+public class Soldier
 {
 	public static Random rand;
 	public static RobotController rc;
@@ -51,18 +52,21 @@ public class Soldier
 		{
 			//try to attack, if successful then finish turn
 			//does not prioritize who to attack for now
-			if(foesMaybeNearby && rc.isWeaponReady())
+			if(foesMaybeNearby)
 			{
-				RobotInfo[] foes = rc.senseHostileRobots(myLoc, RobotPlayer.myType.attackRadiusSquared);
-				if(foes.length > 0)
+				if(rc.isWeaponReady()) //maybe different flow here
 				{
-					//does randomizing make a difference here?
-					rc.attackLocation(foes[0].location);
-				}
-				else //no foes nearby
-				{
-					foesMaybeNearby = false;
-					continue;
+					RobotInfo[] foes = rc.senseHostileRobots(myLoc, RobotPlayer.myType.attackRadiusSquared);
+					if(foes.length > 0)
+					{
+						//does randomizing make a difference here?
+						rc.attackLocation(foes[0].location);
+					}
+					else //no foes nearby
+					{
+						foesMaybeNearby = false;
+						continue;
+					}
 				}
 			}
 			else

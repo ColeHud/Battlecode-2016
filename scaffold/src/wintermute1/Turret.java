@@ -7,7 +7,7 @@ import java.util.*;
  * 
  */
 
-//do not move away from archons enough yet
+//do not move away from archons if too close to them yet
 
 //move constants and all that inside or outside
 
@@ -17,7 +17,7 @@ public class Turret
 	public static RobotController rc;
 
 	public static Direction[] directions = {Direction.NORTH, Direction.NORTH_EAST, Direction.EAST, Direction.SOUTH_EAST,
-											Direction.SOUTH, Direction.SOUTH_WEST, Direction.WEST, Direction.NORTH_WEST};
+			Direction.SOUTH, Direction.SOUTH_WEST, Direction.WEST, Direction.NORTH_WEST};
 	public static int numDirections = directions.length;
 	public static double tooMuchRubble = 50; //how much rubble there has to be so that the soldiers don't try to clear it
 
