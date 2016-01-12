@@ -30,7 +30,7 @@ public class Soldier
 		rand = new Random(rc.getID());
 		
 		//NOT DONE: make some (20%) into protectors
-		//boolean isProtector = rand.nextFloat() < probProtector;
+		//boolean isProtector = rand.nextFloat() < probProtector; //should use Math.random()?
 		
 		MapLocation goalLoc = new MapLocation(-1, -1); // MapLocation(-1, -1) used as "no location" or null
 		Direction dirToMove = Direction.NONE;
@@ -53,15 +53,9 @@ public class Soldier
 				RobotInfo[] foes = rc.senseHostileRobots(myLoc, RobotPlayer.myType.attackRadiusSquared);
 				if(foes.length > 0)
 				{
-					for(RobotInfo foe : foes) //does randomizing make a difference here?
-					{
-						MapLocation foeLoc = foe.location;
-						if(rc.canAttackLocation(foeLoc))
-						{
-							rc.attackLocation(foeLoc);
-							break;
-						}
-					}
+					//does randomizing make a difference here?
+					rc.attackLocation(foes[0].location);
+					break;
 				}
 				else //no foes nearby
 				{
