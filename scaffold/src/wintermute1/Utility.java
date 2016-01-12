@@ -37,10 +37,4 @@ public class Utility
 		}
 		return returnArrayList;
 	}
-	
-	//returns if a MapLocation is the null MapLocation
-	public static boolean isLocNull(MapLocation loc)
-	{
-		return (loc.x == NULL_LOC_COORD) || (loc.y == NULL_LOC_COORD);
-	}
 }

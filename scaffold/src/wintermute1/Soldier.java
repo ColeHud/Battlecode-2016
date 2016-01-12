@@ -36,7 +36,7 @@ public class Soldier
 		//NOT DONE: make some (20%) into protectors
 		//boolean isProtector = rand.nextFloat() < probProtector; //should use Math.random()?
 
-		MapLocation goalLoc = new MapLocation(-1, -1); // MapLocation(-1, -1) used as "no location" or null
+		MapLocation goalLoc = null;
 		Direction dirToMove = Direction.NONE;
 		boolean offCourse = false; //whether the soldier turned in getting to a location
 		//means will have to recompute the direction to the goal
@@ -71,7 +71,7 @@ public class Soldier
 			}
 			else
 			{
-				if(Utility.isLocNull(goalLoc))
+				if(goalLoc == null)
 				{
 					boolean gotNewGoalLoc = false;
 					Signal[] signals = rc.emptySignalQueue();
@@ -149,7 +149,7 @@ public class Soldier
 					{
 						if((myLoc.distanceSquaredTo(goalLoc) <= closeEnoughSquared) || (stepsLeft <= 0)) // done
 						{
-							goalLoc = new MapLocation(Utility.NULL_LOC_COORD, Utility.NULL_LOC_COORD); //the null loc
+							goalLoc = null;
 							dirToMove = Direction.NONE;
 							continue; //didn't use that much bytecode to get here, still might be a mistake
 						}
