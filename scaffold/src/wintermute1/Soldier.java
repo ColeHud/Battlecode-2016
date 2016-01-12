@@ -19,33 +19,33 @@ public class Soldier
 	public static Random rand;
 	public static RobotController rc;
 	public static Direction[] directions = {Direction.NORTH, Direction.NORTH_EAST, Direction.EAST, Direction.SOUTH_EAST,
-											Direction.SOUTH, Direction.SOUTH_WEST, Direction.WEST, Direction.NORTH_WEST};
+			Direction.SOUTH, Direction.SOUTH_WEST, Direction.WEST, Direction.NORTH_WEST};
 	public static int numDirections = directions.length;
 	public static int maxMomentum = 0; //how many turns to keep going in a direction, if no guidance to change it
 	public static int momentum = maxMomentum;
 	//public static float probProtector = 0.2; //might change based on GameConstants.NUMBER_OF_ARCHONS_MAX
-											   //not sure if that's the max for the specific map
-											   //should protect a specific archon? Don't think that's a great idea
+	//not sure if that's the max for the specific map
+	//should protect a specific archon? Don't think that's a great idea
 	// continues might be a bad idea
 	public static void run() throws GameActionException
 	{
 		rc = RobotPlayer.rc;
 		rand = new Random(rc.getID());
-		
+
 		//NOT DONE: make some (20%) into protectors
 		//boolean isProtector = rand.nextFloat() < probProtector; //should use Math.random()?
-		
+
 		MapLocation goalLoc = new MapLocation(-1, -1); // MapLocation(-1, -1) used as "no location" or null
 		Direction dirToMove = Direction.NONE;
 		boolean offCourse = false; //whether the soldier turned in getting to a location
-								   //means will have to recompute the direction to the goal
+		//means will have to recompute the direction to the goal
 		int closeEnoughSquared = 4; //how close you have to get to a goalLoc (squared)
 		int stepsLeft = 100; //max number of steps to take to get to a goalLoc (don't want to try forever)
-		                     //in code depends on distance from myLoc to goalLoc
+		//in code depends on distance from myLoc to goalLoc
 		double tooMuchRubble = 50; //how much rubble there has to be so that the soldiers don't try to clear it
 		boolean foesMaybeNearby = true; //used to restart while loop
 		MapLocation myLoc = rc.getLocation();
-		
+
 		//should also try to get closer to enemies that a soldier can just sense but not attack?
 		while(true)
 		{
@@ -88,7 +88,7 @@ public class Soldier
 						continue;
 					}
 					else //move randomly
-						 //this code is copied some below
+						//this code is copied some below
 					{
 						if(rc.isCoreReady())
 						{
@@ -200,9 +200,8 @@ public class Soldier
 					foesMaybeNearby = true;
 				}
 			}
-			Clock.yield();
+			Clock.yield(); //end after if statement
 		}
-		Clock.yield();
 	}
 
 	//turnLeft says whether or not to turnLeft
@@ -217,7 +216,7 @@ public class Soldier
 			return dir.rotateRight();
 		}
 	}
-	
+
 	public static boolean isLocNull(MapLocation loc)
 	{
 		return loc.x == -1 || loc.y == -1;
