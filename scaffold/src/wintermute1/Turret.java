@@ -7,6 +7,8 @@ import java.util.*;
  * 
  */
 
+//do not move away from archons enough yet
+
 //move constants and all that inside or outside
 
 public class Turret 

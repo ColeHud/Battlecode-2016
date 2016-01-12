@@ -67,7 +67,7 @@ public class Soldier
 			}
 			else
 			{
-				if(isLocNull(goalLoc))
+				if(Utility.isLocNull(goalLoc))
 				{
 					boolean gotNewGoalLoc = false;
 					Signal[] signals = rc.emptySignalQueue();
@@ -145,7 +145,7 @@ public class Soldier
 					{
 						if((myLoc.distanceSquaredTo(goalLoc) <= closeEnoughSquared) || (stepsLeft <= 0)) // done
 						{
-							goalLoc = new MapLocation(-1, -1); //the null loc
+							goalLoc = new MapLocation(Utility.NULL_LOC_COORD, Utility.NULL_LOC_COORD); //the null loc
 							dirToMove = Direction.NONE;
 							continue; //didn't use that much bytecode to get here, still might be a mistake
 						}
@@ -215,10 +215,5 @@ public class Soldier
 		{
 			return dir.rotateRight();
 		}
-	}
-
-	public static boolean isLocNull(MapLocation loc)
-	{
-		return loc.x == -1 || loc.y == -1;
 	}
 }

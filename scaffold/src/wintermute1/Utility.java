@@ -13,6 +13,7 @@ public class Utility
 	public static final double PERCENTAGE_TURRETS = .2;
 	public static final double PERCENTAGE_SOLDIERS = .8;
 	public static final int MAX_FOES_TO_BUILD = 4;
+	public static final int NULL_LOC_COORD = 35497234;
 	
 	//get an arraylist of directions
 	public static ArrayList<Direction> arrayListOfDirections()
@@ -35,5 +36,11 @@ public class Utility
 			returnArrayList.add(location);
 		}
 		return returnArrayList;
+	}
+	
+	//returns if a MapLocation is the null MapLocation
+	public static boolean isLocNull(MapLocation loc)
+	{
+		return (loc.x == NULL_LOC_COORD) || (loc.y == NULL_LOC_COORD);
 	}
 }
