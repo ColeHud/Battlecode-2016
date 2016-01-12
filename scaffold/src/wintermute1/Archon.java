@@ -38,6 +38,7 @@ public class Archon
 			if(rc.getLocation().equals(goal))
 			{
 				goal = null;//you made it to the goal
+				past10Locations = new ArrayList<MapLocation>();//delete the slug trail after you reach your goal
 			}
 			
 			//sense locations around you
@@ -137,16 +138,17 @@ public class Archon
 					moveToLocation(goal);
 				}
 			}
-			else
+			else//there are foes nearby
 			{
-				if(rc.getLocation().distanceSquaredTo(goal) < 2)
+				if(goal != null && rc.getLocation().distanceSquaredTo(goal) < 2)
 				{
-					goal = null;
+					goal = findSaferLocation();
+					moveToLocation(goal);
 				}
-				
-				//there are nearby bots that will attack. Run Away!!!
-				goal = findSaferLocation();
-				moveToLocation(goal);
+				else
+				{
+					moveToLocation(goal);
+				}
 			}
 			
 			Clock.yield();
@@ -212,33 +214,49 @@ public class Archon
 		
 		MapLocation locationToMoveTo = currentLoc.add(directionToM);
 		
+		rc.setIndicatorString(0, "" + canMoveThere(actualDirectionToMove, locationToMoveTo));
 		if(canMoveThere(actualDirectionToMove, locationToMoveTo))//make sure it's not part of the slug trail and it's not blocked by rubble and you can move there
 		{
 			moveInDirection(actualDirectionToMove);
 		}
 		else
 		{
-			Direction right = actualDirectionToMove.rotateRight();
-			Direction left = actualDirectionToMove.rotateLeft();
-			MapLocation rightLoc = currentLoc.add(right);
-			MapLocation leftLoc = currentLoc.add(left);
-			
-			while(right != left)
+			//first, check if you should remove rubble. only if the surrounding squares are empty
+			boolean shouldRemoveRubble = false;
+			int directionsWithRubble = 0;
+			for(Direction d : Direction.values())
 			{
-				if(canMoveThere(right, rightLoc))
+				MapLocation added = goal.add(d);
+				boolean isFullOfRubble = rc.senseRubble(added) > 50;
+				if(isFullOfRubble)
 				{
-					moveInDirection(right);
+					directionsWithRubble++;
 				}
-				else if(canMoveThere(left, leftLoc))
+			}
+			if(directionsWithRubble > 2)//if it's surrounded then dig
+			{
+				if(rc.isCoreReady())
 				{
-					moveInDirection(left);
+					rc.clearRubble(actualDirectionToMove);
 				}
-				else
+			}
+			else //if not, path around it
+			{
+				Direction right = actualDirectionToMove.rotateRight();
+				MapLocation rightLoc = currentLoc.add(right);
+				
+				while(right.equals(actualDirectionToMove) == false)
 				{
-					right = right.rotateRight();
-					left = left.rotateLeft();
-					rightLoc = currentLoc.add(right);
-					leftLoc = currentLoc.add(left);
+					if(canMoveThere(right, rightLoc))
+					{
+						moveInDirection(right);
+						right = actualDirectionToMove;
+					}
+					else
+					{
+						right = right.rotateRight();
+						rightLoc = currentLoc.add(right);
+					}
 				}
 			}
 		}
@@ -247,13 +265,13 @@ public class Archon
 	//can move to a location
 	public static boolean canMoveThere(Direction d, MapLocation m)
 	{
-		if(past10Locations.contains(m) == false && rc.senseRubble(m) < 20 && rc.canMove(d))//make sure it's not part of the slug trail and it's not blocked by rubble and you can move there
+		if(past10Locations.contains(m) == false && rc.senseRubble(m) < 50 && rc.canMove(d))//make sure it's not part of the slug trail and it's not blocked by rubble and you can move there
 		{
 			return true;
 		}
 		else
 		{
-			return true;
+			return false;
 		}
 	}
 	
@@ -262,7 +280,7 @@ public class Archon
 	{
 		MapLocation m = rc.getLocation().add(d);
 		
-		if(rc.senseRubble(m) < 20)//if it's less than 20, just move there
+		if(rc.senseRubble(m) < 50)//if it's less than 20, just move there
 		{
 			if(rc.isCoreReady() && rc.canMove(d))
 			{
