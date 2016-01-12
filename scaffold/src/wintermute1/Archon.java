@@ -113,6 +113,7 @@ public class Archon
 			//what to do
 			if(nearbyFoes == 0)//if there are no foes in sight
 			{
+				rc.setIndicatorString(0, "THERE ARE NO FOES NEARBY");
 				if(maxParts > 0 && goal == null)//if there are parts nearby
 				{
 					//make that the goal
@@ -122,7 +123,7 @@ public class Archon
 				{
 					//build something or find new parts
 					//75% build, 25% new parts
-					if(locationsWithParts.size() > 0 && Math.random() > .75)
+					if(locationsWithParts.size() > 0 && Math.random() > .9)
 					{
 						goal = locationsWithParts.get(0);
 						locationsWithParts.remove(0);
@@ -142,20 +143,11 @@ public class Archon
 			}
 			else//there are foes nearby
 			{
-				if(nearbyFoesInAttackRange > 0)
-				{
-					rc.setIndicatorString(0, "THERE ARE FOES NEARBY");
-					if(goal != null && goalIsASafeLocation == false)//if it's not a safe goal, find one
-					{
-						goal = findSaferLocation();
-						goalIsASafeLocation = true;
-						moveToLocation(goal);
-					}
-					else if(goalIsASafeLocation && goal != null)//if it's already a safe location
-					{
-						moveToLocation(goal);
-					}
-				}
+				rc.setIndicatorString(0, "THERE ARE FOES NEARBY");
+
+				goal = findSaferLocation();
+				goalIsASafeLocation = true;
+				moveToLocation(goal);
 			}
 			
 			Clock.yield();
