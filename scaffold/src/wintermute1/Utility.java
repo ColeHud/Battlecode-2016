@@ -12,7 +12,6 @@ public class Utility
 	
 	public static final double PERCENTAGE_TURRETS = .2;
 	public static final double PERCENTAGE_SOLDIERS = .8;
-	public static final int MAX_FOES_TO_BUILD = 4;
 	
 	//get an arraylist of directions
 	public static ArrayList<Direction> arrayListOfDirections()
