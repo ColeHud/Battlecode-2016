@@ -14,6 +14,7 @@ public class Scout
 	{
 		rc = RobotPlayer.rc;
 		rand = new Random(rc.getID());
+		
 		spawn = rc.getLocation();
 
 		while(true)
