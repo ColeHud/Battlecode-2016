@@ -10,6 +10,9 @@ import java.util.*;
 //has momentum but can set to 0
 //protectors not implemented yet, first see how the basic guys work
 //all have to stay a little away from archons
+//could make them clump or swarm more?
+
+//move constants and all that inside or outside
 
 public class Soldier 
 {
