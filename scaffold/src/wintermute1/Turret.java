@@ -51,13 +51,10 @@ public class Turret
 					int y_sum = 0;
 					for(RobotInfo robot : foesTooCloseToMe)
 					{
-						if((robot.team == Team.ZOMBIE) || (robot.team == Robot.enemy))
-						{
-							n_hostiles ++;
-							MapLocation robotLoc = robot.location;
-							x_sum += robotLoc.x;
-							y_sum += robotLoc.y;
-						}
+						n_hostiles ++;
+						MapLocation robotLoc = robot.location;
+						x_sum += robotLoc.x;
+						y_sum += robotLoc.y;
 					}
 					int x = (int) ((float)x_sum / n_hostiles + 0.5);
 					int y = (int) ((float)y_sum / n_hostiles + 0.5);
