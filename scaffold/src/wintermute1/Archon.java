@@ -17,7 +17,10 @@ public class Archon
 	public static MapLocation[] nearbyPartsLocations;
 	public static ArrayList<MapLocation> past10Locations = new ArrayList<MapLocation>(10);//slug trail
 	
-	//signals
+	//robots
+	public static RobotInfo[] robots;
+	public static ArrayList<RobotInfo> foes;
+	public static ArrayList<RobotInfo> foesWithinAttackRange;
 
 	public static void run() throws GameActionException
 	{
@@ -48,6 +51,13 @@ public class Archon
 			MapLocation nearbyLocationWithMostParts = null;
 			for(MapLocation loc : nearbyPartsLocations)
 			{
+				//add to locationsWithParts arraylist
+				if(locationsWithParts.contains(loc) == false)
+				{
+					locationsWithParts.add(loc);
+				}
+			
+				//find the location with the most parts
 				double partsAtLoc = rc.senseParts(loc);
 				if(partsAtLoc > maxParts)
 				{
@@ -71,9 +81,9 @@ public class Archon
 			
 			//sense robots
 			MapLocation myLoc = rc.getLocation();
-			RobotInfo[] robots = rc.senseNearbyRobots();
-			ArrayList<RobotInfo> foes = new ArrayList<RobotInfo>();
-			ArrayList<RobotInfo> foesWithinAttackRange = new ArrayList<RobotInfo>();
+			robots = rc.senseNearbyRobots();
+			foes = new ArrayList<RobotInfo>();
+			foesWithinAttackRange = new ArrayList<RobotInfo>();
 			for(RobotInfo robot : robots)
 			{
 				if(robot.team == Team.ZOMBIE || robot.team == rc.getTeam().opponent())//if the robot is a foe
@@ -123,11 +133,47 @@ public class Archon
 				else
 				{
 					//there are nearby bots that will attack. Run Away!!!
+					goal = findSaferLocation();
+					moveToLocation(goal);
 				}
 			}
 			
 			Clock.yield();
 		}
+	}
+	
+	//find a safe location
+	public static MapLocation findSaferLocation()//move to far spot in direction with fewest enemies
+	{
+		MapLocation currentLocation = rc.getLocation();
+		ArrayList<Direction> directions = Utility.arrayListOfDirections();
+		ArrayList<Integer> enemiesInEachDirection = new ArrayList<Integer>(10);
+		
+		for(RobotInfo foe : foes)
+		{
+			Direction dirToFoe = currentLocation.directionTo(foe.location);
+			int index = directions.indexOf(dirToFoe);
+			int numberOfFoesInDirection = enemiesInEachDirection.get(index);
+			enemiesInEachDirection.set(index, numberOfFoesInDirection++);
+		}
+		
+		int leastEnemies = 1000000;
+		int directionWithLeastEnemies = 0;
+		for(int i = 0; i<enemiesInEachDirection.size(); i++)
+		{
+			int numberOfEnemies = enemiesInEachDirection.get(i);
+			if(numberOfEnemies < leastEnemies)
+			{
+				directionWithLeastEnemies = i;
+				leastEnemies = numberOfEnemies;
+			}
+		}
+		
+		Direction direction = directions.get(directionWithLeastEnemies);//the direction with the fewest enemies
+		
+		//move in that direction as far as you can see
+		MapLocation locationToGoTo = currentLocation.add(direction, (int)Math.sqrt(RobotType.ARCHON.sensorRadiusSquared));
+		return locationToGoTo;
 	}
 	
 	//move to a maplocation
@@ -230,7 +276,6 @@ public class Archon
 			else
 			{
 				double percent = Math.random();
-				rc.setIndicatorString(0, percent + "");
 				if(percent <= Utility.PERCENTAGE_TURRETS) //build turret
 				{
 					typeToBuild = RobotType.TURRET;
