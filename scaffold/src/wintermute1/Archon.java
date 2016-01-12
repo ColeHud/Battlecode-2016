@@ -111,31 +111,30 @@ public class Archon
 			//what to do
 			if(nearbyFoes == 0)//if there are no foes in sight
 			{
-				if(nearbyFoesInAttackRange == 0)//if there are no foes in attack range
+				if(maxParts > 0 && goal == null)//if there are parts nearby
 				{
-					if(maxParts > 0 && goal == null)//if there are parts nearby
-					{
-						//make that the goal
-						goal = nearbyLocationWithMostParts;
-					}
-					else if(goal == null)//if there aren't and there is no goal
-					{
-						//build something
-						buildRobots();
-						
-						//calculate the next goal - maybe a new parts location you got via signal
-					}
-					else if(goal != null)//if there is a goal, move there
-					{
-						moveToLocation(goal);
-					}
+					//make that the goal
+					goal = nearbyLocationWithMostParts;
 				}
-				else
+				else if(goal == null)//if there aren't and there is no goal
 				{
-					//there are nearby bots that will attack. Run Away!!!
-					goal = findSaferLocation();
+					//build something
+					buildRobots();
+
+					//calculate the next goal - maybe a new parts location you got via signal
+				}
+				else if(goal != null)//if there is a goal, move there
+				{
 					moveToLocation(goal);
 				}
+				
+			}
+			else
+			{
+				//there are nearby bots that will attack. Run Away!!!
+				goal = findSaferLocation();
+				moveToLocation(goal);
+
 			}
 			
 			Clock.yield();
@@ -148,6 +147,12 @@ public class Archon
 		MapLocation currentLocation = rc.getLocation();
 		ArrayList<Direction> directions = Utility.arrayListOfDirections();
 		ArrayList<Integer> enemiesInEachDirection = new ArrayList<Integer>(10);
+		
+		//initialize the enemiesInEachDirection arraylist
+		for(int i = 0; i < 10; i++)
+		{
+			enemiesInEachDirection.add(0);
+		}
 		
 		for(RobotInfo foe : foes)
 		{
