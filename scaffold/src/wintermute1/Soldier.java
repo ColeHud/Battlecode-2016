@@ -31,7 +31,7 @@ public class Soldier
 	//continues might be a bad idea
 	public static void run() throws GameActionException
 	{
-		rc = team062RobotPlayer.rc;
+		rc = RobotPlayer.rc;
 		rand = new Random(rc.getID());
 
 		//make some (20%) into protectors

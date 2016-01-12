@@ -7,6 +7,7 @@ import java.util.*;
  * 
  */
 
+
 //move constants and all that inside or outside
 
 public class Turret 
