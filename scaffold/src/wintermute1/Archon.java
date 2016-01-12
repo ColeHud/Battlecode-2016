@@ -32,6 +32,11 @@ public class Archon
 			/*
 			 * INPUT
 			 */
+			if(rc.getLocation().equals(goal))
+			{
+				goal = null;//you made it to the goal
+			}
+			
 			//sense locations around you
 			nearbyMapLocations = MapLocation.getAllMapLocationsWithinRadiusSq(rc.getLocation(), rc.getType().sensorRadiusSquared);
 			
@@ -103,12 +108,16 @@ public class Archon
 						//make that the goal
 						goal = nearbyLocationWithMostParts;
 					}
-					else//if there aren't
+					else if(goal == null)//if there aren't and there is no goal
 					{
 						//build something
 						buildRobots();
 						
 						//calculate the next goal - maybe a new parts location you got via signal
+					}
+					else if(goal != null)//if there is a goal, move there
+					{
+						moveToLocation(goal);
 					}
 				}
 				else
@@ -122,7 +131,7 @@ public class Archon
 	}
 	
 	//move to a maplocation
-	public void moveToLocation(MapLocation m) throws GameActionException
+	public static void moveToLocation(MapLocation m) throws GameActionException
 	{
 		MapLocation currentLoc = rc.getLocation();
 		Direction directionToM = currentLoc.directionTo(m);
@@ -186,7 +195,7 @@ public class Archon
 	}
 	
 	//move in a given direction
-	public void moveInDirection(Direction d) throws GameActionException
+	public static void moveInDirection(Direction d) throws GameActionException
 	{
 		MapLocation m = rc.getLocation().add(d);
 		
