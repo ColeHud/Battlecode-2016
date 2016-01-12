@@ -6,16 +6,26 @@ import java.util.*;
 public class Archon 
 {
 	public static Random rand;
-	public static boolean hasBuiltScout = false;
 	public static RobotController rc;
 	public static ArrayList<MapLocation> locationsWithParts = new ArrayList<MapLocation>();
 	public static MapLocation goal = null;
 	public static RobotType typeToBuild = RobotType.SOLDIER;
+	
+	
+	//locations
+	public static MapLocation[] nearbyMapLocations;
+	public static MapLocation[] nearbyPartsLocations;
+	public static ArrayList<MapLocation> past10Locations = new ArrayList<MapLocation>(10);//slug trail
+	
+	//signals
 
 	public static void run() throws GameActionException
 	{
 		rc = RobotPlayer.rc;
 		rand = new Random(rc.getID());
+		
+		//build scouts right away
+		buildRobot(RobotType.SCOUT);
 
 		while(true)
 		{	
@@ -23,10 +33,23 @@ public class Archon
 			 * INPUT
 			 */
 			//sense locations around you
-			MapLocation[] nearbyMapLocations = MapLocation.getAllMapLocationsWithinRadiusSq(rc.getLocation(), rc.getType().sensorRadiusSquared);
+			nearbyMapLocations = MapLocation.getAllMapLocationsWithinRadiusSq(rc.getLocation(), rc.getType().sensorRadiusSquared);
 			
 			//parts locations 
-			MapLocation[] nearbyPartsLocations = rc.sensePartLocations(RobotType.ARCHON.sensorRadiusSquared);
+			nearbyPartsLocations = rc.sensePartLocations(RobotType.ARCHON.sensorRadiusSquared);
+			
+			//find the nearest mapLocation with the most parts
+			double maxParts = 0;
+			MapLocation nearbyLocationWithMostParts = null;
+			for(MapLocation loc : nearbyPartsLocations)
+			{
+				double partsAtLoc = rc.senseParts(loc);
+				if(partsAtLoc > maxParts)
+				{
+					maxParts = partsAtLoc;
+					nearbyLocationWithMostParts = loc;
+				}
+			}
 			
 			//read signals
 			Signal[] signals = rc.emptySignalQueue();
@@ -70,66 +93,144 @@ public class Archon
 			 * OUPUT
 			 */
 			
-			//find the nearest mapLocation with the most parts
-			double maxParts = 0;
-			MapLocation nearbyLocationWithMostParts = null;
-			for(MapLocation loc : nearbyPartsLocations)
+			//what to do
+			if(nearbyFoes == 0)//if there are no foes in sight
 			{
-				double partsAtLoc = rc.senseParts(loc);
-				if(partsAtLoc > maxParts)
+				if(nearbyFoesInAttackRange == 0)//if there are no foes in attack range
 				{
-					maxParts = partsAtLoc;
-					nearbyLocationWithMostParts = loc;
-				}
-			}
-			
-			//movement
-				//calculate the goal
-				//then move there
-		
-					//move away from enemies
-					//move to parts
-					//move to defensive locations
-			
-			if(nearbyFoes == 0)
-			{
-				
-			}
-			
-			//build
-			if(hasBuiltScout == false)//build a scout if you haven't built one yet
-			{
-				buildRobot(RobotType.SCOUT);
-				hasBuiltScout = true;
-			}
-			
-			//check if you should build
-			if(foes.size() <= Utility.MAX_FOES_TO_BUILD && goal == null && rc.getTeamParts() > RobotType.TURRET.partCost)
-			{
-				//if the current type to build != null, build one of that type
-				if(typeToBuild != null && rc.hasBuildRequirements(typeToBuild))
-				{
-					buildRobot(typeToBuild);
-					typeToBuild = null;
+					if(maxParts > 0 && goal == null)//if there are parts nearby
+					{
+						//make that the goal
+						goal = nearbyLocationWithMostParts;
+					}
+					else//if there aren't
+					{
+						//build something
+						buildRobots();
+						
+						//calculate the next goal - maybe a new parts location you got via signal
+					}
 				}
 				else
 				{
-					double percent = Math.random();
-					rc.setIndicatorString(0, percent + "");
-					if(percent <= Utility.PERCENTAGE_TURRETS) //build turret
-					{
-						typeToBuild = RobotType.TURRET;
-					}
-					else //build a soldier
-					{
-						typeToBuild = RobotType.SOLDIER;
-					}
+					//there are nearby bots that will attack. Run Away!!!
 				}
 			}
 			
-			//signal
-			
 			Clock.yield();
+		}
+	}
+	
+	//move to a maplocation
+	public void moveToLocation(MapLocation m) throws GameActionException
+	{
+		MapLocation currentLoc = rc.getLocation();
+		Direction directionToM = currentLoc.directionTo(m);
+		Direction actualDirectionToMove = directionToM;
+		
+		//deal with the slug trail - trim it to size
+		if(past10Locations.size() > 10)
+		{
+			while(past10Locations.size() > 10)
+			{
+				past10Locations.remove(past10Locations.size() - 1);
+			}
+		}
+		past10Locations.add(currentLoc);
+		
+		MapLocation locationToMoveTo = currentLoc.add(directionToM);
+		
+		if(canMoveThere(actualDirectionToMove, locationToMoveTo))//make sure it's not part of the slug trail and it's not blocked by rubble and you can move there
+		{
+			moveInDirection(actualDirectionToMove);
+		}
+		else
+		{
+			Direction right = actualDirectionToMove.rotateRight();
+			Direction left = actualDirectionToMove.rotateLeft();
+			MapLocation rightLoc = currentLoc.add(right);
+			MapLocation leftLoc = currentLoc.add(left);
+			
+			while(right != left)
+			{
+				if(canMoveThere(right, rightLoc))
+				{
+					moveInDirection(right);
+				}
+				else if(canMoveThere(left, leftLoc))
+				{
+					moveInDirection(left);
+				}
+				else
+				{
+					right = right.rotateRight();
+					left = left.rotateLeft();
+					rightLoc = currentLoc.add(right);
+					leftLoc = currentLoc.add(left);
+				}
+			}
+		}
+	}
+	
+	//can move to a location
+	public static boolean canMoveThere(Direction d, MapLocation m)
+	{
+		if(past10Locations.contains(m) == false && rc.senseRubble(m) < 20 && rc.canMove(d))//make sure it's not part of the slug trail and it's not blocked by rubble and you can move there
+		{
+			return true;
+		}
+		else
+		{
+			return true;
+		}
+	}
+	
+	//move in a given direction
+	public void moveInDirection(Direction d) throws GameActionException
+	{
+		MapLocation m = rc.getLocation().add(d);
+		
+		if(rc.senseRubble(m) < 20)//if it's less than 20, just move there
+		{
+			if(rc.isCoreReady() && rc.canMove(d))
+			{
+				rc.move(d);
+			}
+		}
+		else//clear it
+		{
+			if(rc.isCoreReady() && rc.canAttackLocation(m))
+			{
+				rc.clearRubble(d);	
+			}
+		}
+	}
+	
+	//build robots
+	public static void buildRobots() throws GameActionException
+	{
+		//check if you should build
+		if(rc.getTeamParts() > RobotType.TURRET.partCost)
+		{
+			//if the current type to build != null, build one of that type
+			if(typeToBuild != null && rc.hasBuildRequirements(typeToBuild))
+			{
+				buildRobot(typeToBuild);
+				typeToBuild = null;
+			}
+			else
+			{
+				double percent = Math.random();
+				rc.setIndicatorString(0, percent + "");
+				if(percent <= Utility.PERCENTAGE_TURRETS) //build turret
+				{
+					typeToBuild = RobotType.TURRET;
+				}
+				else //build a soldier
+				{
+					typeToBuild = RobotType.SOLDIER;
+				}
+			}
 		}
 	}
 	
