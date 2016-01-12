@@ -202,6 +202,7 @@ public class Soldier
 			}
 			Clock.yield();
 		}
+		Clock.yield();
 	}
 
 	//turnLeft says whether or not to turnLeft

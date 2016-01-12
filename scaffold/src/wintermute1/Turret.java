@@ -52,7 +52,7 @@ public class Turret
 					int y_sum = 0;
 					for(RobotInfo robot : foesTooCloseToMe)
 					{
-						if((robot.team == Team.ZOMBIE) || (robot.team == Robot.enemy))
+						if((robot.team == Team.ZOMBIE) || (robot.team == rc.getTeam().opponent()))
 						{
 							n_hostiles ++;
 							MapLocation robotLoc = robot.location;
