@@ -58,7 +58,6 @@ public class Soldier
 				{
 					//does randomizing make a difference here?
 					rc.attackLocation(foes[0].location);
-					break;
 				}
 				else //no foes nearby
 				{
@@ -74,7 +73,8 @@ public class Soldier
 					Signal[] signals = rc.emptySignalQueue();
 					for(Signal signal : signals)
 					{
-						if((signal.getMessage() != null) && (signal.getMessage()[0] == Utility.SOLDIER_HELP_CODE))
+						int[] message = signal.getMessage();
+						if((message != null) && (message[0] == Utility.SOLDIER_HELP_CODE))
 						{
 							goalLoc = signal.getLocation();
 							stepsLeft = myLoc.distanceSquaredTo(goalLoc); //not sure what would be better
@@ -197,8 +197,8 @@ public class Soldier
 							}
 						}
 					}
-					foesMaybeNearby = true;
 				}
+				foesMaybeNearby = true;
 			}
 			Clock.yield(); //end after if statement
 		}
