@@ -113,7 +113,6 @@ public class Archon
 			//what to do
 			if(nearbyFoes == 0)//if there are no foes in sight
 			{
-				rc.setIndicatorString(0, "THERE ARE NO FOES NEARBY");
 				if(maxParts > 0 && goal == null)//if there are parts nearby
 				{
 					//make that the goal
@@ -143,11 +142,13 @@ public class Archon
 			}
 			else//there are foes nearby
 			{
-				rc.setIndicatorString(0, "THERE ARE FOES NEARBY");
-
-				goal = findSaferLocation();
-				goalIsASafeLocation = true;
-				moveToLocation(goal);
+				if(nearbyFoesInAttackRange > 0)
+				{
+					goal = findSaferLocation();
+					rc.setIndicatorString(0, "" + goal.x + " " + goal.y);
+					goalIsASafeLocation = true;
+					moveToLocation(goal);
+				}
 			}
 			
 			Clock.yield();
@@ -161,6 +162,7 @@ public class Archon
 		ArrayList<Direction> directions = Utility.arrayListOfDirections();
 		ArrayList<Integer> enemiesInEachDirection = new ArrayList<Integer>(10);
 		
+		/*
 		//initialize the enemiesInEachDirection arraylist
 		for(int i = 0; i < 10; i++)
 		{
@@ -188,10 +190,45 @@ public class Archon
 		}
 		
 		Direction direction = directions.get(directionWithLeastEnemies);//the direction with the fewest enemies
-		
-		//move in that direction as far as you can see
-		MapLocation locationToGoTo = currentLocation.add(direction, (int)Math.sqrt(RobotType.ARCHON.sensorRadiusSquared) / 2);
-		return locationToGoTo;
+		*/
+
+		//find if foes are within attack range
+		RobotInfo[] foes = rc.senseHostileRobots(rc.getLocation(), RobotType.SCOUT.sensorRadiusSquared);
+		ArrayList<RobotInfo> nearAttackRange = new ArrayList<RobotInfo>();
+
+		for(RobotInfo foe : foes)
+		{
+			RobotType type = foe.type;
+			if(type != RobotType.ARCHON && type != RobotType.ZOMBIEDEN && type != RobotType.SCOUT)//only want enemies who can attack
+			{
+				//if you're close to the attack range
+				if(currentLocation.distanceSquaredTo(foe.location) < foe.type.attackRadiusSquared + 4)
+				{
+					nearAttackRange.add(foe);
+				}
+			}
+		}
+
+		//get the average direction to them
+		ArrayList<Direction> listOfDirections = Utility.arrayListOfDirections();
+		int averageDirection = 0;
+		for(RobotInfo foe : nearAttackRange)
+		{
+			averageDirection += directions.indexOf(currentLocation.directionTo(foe.location));
+		}
+		if(nearAttackRange.size() > 0)
+		{
+			averageDirection /= nearAttackRange.size();
+			Direction directionToEnemies = directions.get(averageDirection);
+			
+			//move in that direction as far as you can see
+			MapLocation locationToGoTo = currentLocation.add(directionToEnemies.opposite(), (int)Math.sqrt(RobotType.ARCHON.sensorRadiusSquared) / 2);
+			return locationToGoTo;
+		}
+		else
+		{
+			return rc.getLocation();
+		}
 	}
 	
 	//move to a maplocation
