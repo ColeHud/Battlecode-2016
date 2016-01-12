@@ -26,7 +26,7 @@ public class Soldier
 	//public static float probProtector = 0.2; //might change based on GameConstants.NUMBER_OF_ARCHONS_MAX
 	//not sure if that's the max for the specific map
 	//should protect a specific archon? Don't think that's a great idea
-	// continues might be a bad idea
+	//continues might be a bad idea
 	public static void run() throws GameActionException
 	{
 		rc = RobotPlayer.rc;
@@ -97,7 +97,7 @@ public class Soldier
 							boolean turnLeft = rand.nextBoolean(); //if true keep turning left, if false keep turning right
 							if(momentum <= 0 || dirToMove == Direction.NONE)
 							{
-								dirToMove = directions[rand.nextInt(directions.length - 1)]; //random dir
+								dirToMove = directions[rand.nextInt(directions.length)]; //random dir
 								momentum = maxMomentum; //reset momentum
 							}
 							else

@@ -1,6 +1,5 @@
 package wintermute1;
 import battlecode.common.*;
-import wintermute0.Robot;
 
 import java.util.*;
 
@@ -39,6 +38,7 @@ public class Turret
 				if(foesTooCloseToMe.length == 0 || turnsToRunAway <= 0) //can stop running
 				{
 					rc.unpack();
+					isPacked = false;
 				}
 				else if(rc.isCoreReady()) //run away from them!
 				{
@@ -59,13 +59,13 @@ public class Turret
 					int x = (int) ((float)x_sum / n_hostiles + 0.5);
 					int y = (int) ((float)y_sum / n_hostiles + 0.5);
 					MapLocation hostileLoc = new MapLocation(x, y);
-					
+
 					Direction dirToMove = hostileLoc.directionTo(myLoc);
-					
+
 					int timesRotated = 0;
 					boolean done = false;
 					boolean turnLeft = rand.nextBoolean(); //if true keep turning left, if false keep turning right
-					
+
 					while((timesRotated < numDirections) && (! done))
 					{
 						double rubble = rc.senseRubble(myLoc.add(dirToMove));
@@ -99,55 +99,57 @@ public class Turret
 					}
 					turnsToRunAway --;
 				}
-				else
+			}
+			else
+			{
+				//attack any foes sending messages if you can
+				//should save locs of all foes? May get outdated fast
+				if(rc.isWeaponReady())
 				{
-					//attack any foes sending messages if you can
-					//should save locs of all foes? May get outdated fast
-					if(rc.isWeaponReady())
+					Signal[] signals = rc.emptySignalQueue();
+					for(Signal signal : signals)
 					{
-						Signal[] signals = rc.emptySignalQueue();
-						for(Signal signal : signals)
+						Team signalTeam = signal.getTeam();
+						if(signalTeam == enemyTeam || signalTeam == Team.ZOMBIE)
 						{
-							Team signalTeam = signal.getTeam();
-							if(signalTeam == enemyTeam || signalTeam == Team.ZOMBIE)
-							{
-								MapLocation foeLoc = signal.getLocation();
-								if(rc.canAttackLocation(foeLoc))
-								{
-									rc.attackLocation(foeLoc);
-									break;
-								}
-							}
-						}
-					}
-					//maybe some different flow here?
-					//otherwise get foes in your attackRange
-					RobotInfo[] foes = rc.senseHostileRobots(rc.getLocation(), RobotPlayer.myType.attackRadiusSquared);
-					if(foes.length > 0)
-					{
-						myLoc = rc.getLocation();
-						MapLocation foeLoc = foes[0].location;
-						int meToFoe = myLoc.distanceSquaredTo(foeLoc);
-						if(meToFoe >= GameConstants.TURRET_MINIMUM_RANGE)
-						{
-							if(rc.isWeaponReady())
+							MapLocation foeLoc = signal.getLocation();
+							if(rc.canAttackLocation(foeLoc))
 							{
 								rc.attackLocation(foeLoc);
+								break;
 							}
-						}
-						else
-						{
-							turnsToRunAway = maxTurnsToRunAway;
-							rc.pack();
-							//continue; //might be able to get some running away in
 						}
 					}
 				}
+				//maybe some different flow here?
+				//otherwise get foes in your attackRange
+				RobotInfo[] foes = rc.senseHostileRobots(rc.getLocation(), RobotPlayer.myType.attackRadiusSquared);
+				if(foes.length > 0)
+				{
+					MapLocation myLoc = rc.getLocation();
+					MapLocation foeLoc = foes[0].location;
+					int meToFoe = myLoc.distanceSquaredTo(foeLoc);
+					if(meToFoe >= GameConstants.TURRET_MINIMUM_RANGE)
+					{
+						if(rc.isWeaponReady())
+						{
+							rc.attackLocation(foeLoc);
+						}
+					}
+					else
+					{
+						turnsToRunAway = maxTurnsToRunAway;
+						rc.pack();
+						isPacked = true;
+						//continue; //might be able to get some running away in
+					}
+				}
+
 			}
 			Clock.yield();
 		}
 	}
-	
+
 	//turnLeft says whether or not to turnLeft
 	public static Direction turn(Direction dir, boolean turnLeft)
 	{
