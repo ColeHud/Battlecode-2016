@@ -9,6 +9,7 @@ public class Archon
 	public static RobotController rc;
 	public static ArrayList<MapLocation> locationsWithParts = new ArrayList<MapLocation>();
 	public static MapLocation goal = null;
+	public static boolean goalIsASafeLocation = false;
 	public static RobotType typeToBuild = RobotType.SOLDIER;
 	
 	
@@ -125,6 +126,7 @@ public class Archon
 					{
 						goal = locationsWithParts.get(0);
 						locationsWithParts.remove(0);
+						goalIsASafeLocation = false;
 					}
 					else
 					{
@@ -140,14 +142,19 @@ public class Archon
 			}
 			else//there are foes nearby
 			{
-				if(goal != null && rc.getLocation().distanceSquaredTo(goal) < 2)
+				if(nearbyFoesInAttackRange > 0)
 				{
-					goal = findSaferLocation();
-					moveToLocation(goal);
-				}
-				else
-				{
-					moveToLocation(goal);
+					rc.setIndicatorString(0, "THERE ARE FOES NEARBY");
+					if(goal != null && goalIsASafeLocation == false)//if it's not a safe goal, find one
+					{
+						goal = findSaferLocation();
+						goalIsASafeLocation = true;
+						moveToLocation(goal);
+					}
+					else if(goalIsASafeLocation && goal != null)//if it's already a safe location
+					{
+						moveToLocation(goal);
+					}
 				}
 			}
 			
@@ -214,7 +221,6 @@ public class Archon
 		
 		MapLocation locationToMoveTo = currentLoc.add(directionToM);
 		
-		rc.setIndicatorString(0, "" + canMoveThere(actualDirectionToMove, locationToMoveTo));
 		if(canMoveThere(actualDirectionToMove, locationToMoveTo))//make sure it's not part of the slug trail and it's not blocked by rubble and you can move there
 		{
 			moveInDirection(actualDirectionToMove);
