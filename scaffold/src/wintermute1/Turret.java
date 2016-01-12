@@ -59,13 +59,13 @@ public class Turret
 					int x = (int) ((float)x_sum / n_hostiles + 0.5);
 					int y = (int) ((float)y_sum / n_hostiles + 0.5);
 					MapLocation hostileLoc = new MapLocation(x, y);
-
+					
 					Direction dirToMove = hostileLoc.directionTo(myLoc);
-
+					
 					int timesRotated = 0;
 					boolean done = false;
 					boolean turnLeft = rand.nextBoolean(); //if true keep turning left, if false keep turning right
-
+					
 					while((timesRotated < numDirections) && (! done))
 					{
 						double rubble = rc.senseRubble(myLoc.add(dirToMove));
