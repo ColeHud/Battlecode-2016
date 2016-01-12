@@ -7,8 +7,6 @@ import java.util.*;
  * 
  */
 
-//do not move away from archons if too close to them yet
-
 //move constants and all that inside or outside
 
 public class Turret 
@@ -29,13 +27,72 @@ public class Turret
 		boolean isPacked = false; //whether or not the turret is packed (is a TTM)
 		int maxTurnsToRunAway = 10; //how many turns TTMs should run away for before standing their ground
 		int turnsToRunAway = maxTurnsToRunAway; //doesn't need to start with a value, but compiler complained
-
+		MapLocation myLoc = rc.getLocation();
+		
+		//move a little away from archon, may want to leave even more space
+		RobotInfo makerArchon = null;
+		RobotInfo[] nearbyRobots = rc.senseNearbyRobots(4);
+		for (RobotInfo robot : nearbyRobots)
+		{
+			if(robot.type == RobotType.ARCHON)
+			{
+				makerArchon = robot;
+				break;
+			}
+		}
+		Direction dirToMove = makerArchon.location.directionTo(myLoc); //away from Archon
+		int movesAwayFromArchon = 2;
+		rc.pack();
+		while(movesAwayFromArchon > 0)
+		{
+			if(rc.isCoreReady())
+			{
+				int timesRotated = 0;
+				boolean done = false;
+				boolean turnLeft = rand.nextBoolean(); //if true keep turning left, if false keep turning right
+				while((timesRotated < numDirections) && (! done))
+				{
+					double rubble = rc.senseRubble(myLoc.add(dirToMove));
+					if(rubble > GameConstants.RUBBLE_OBSTRUCTION_THRESH)
+					{
+						if(rubble >= tooMuchRubble) //try another direction
+						{
+							dirToMove = turn(dirToMove, turnLeft);
+							timesRotated ++;
+						}
+						else //clear the rubble
+						{
+							rc.clearRubble(dirToMove);
+							done = true;
+						}
+					}
+					else
+					{
+						if(rc.canMove(dirToMove))
+						{
+							rc.move(dirToMove);
+							done = true;
+							myLoc = rc.getLocation();
+						}
+						else
+						{
+							dirToMove = turn(dirToMove, turnLeft);
+							timesRotated ++;
+						}
+					}
+				}
+			movesAwayFromArchon --;
+			}
+			Clock.yield();
+		}
+		rc.unpack();
+		
 		while(true)
 		{	
 			if(isPacked)
 			{
 				//check if far away enough from enemies now
-				MapLocation myLoc = rc.getLocation();
+				myLoc = rc.getLocation();
 				RobotInfo[] foesTooCloseToMe = rc.senseHostileRobots(myLoc, GameConstants.TURRET_MINIMUM_RANGE);
 				if(foesTooCloseToMe.length == 0 || turnsToRunAway <= 0) //can stop running
 				{
@@ -62,7 +119,7 @@ public class Turret
 					int y = (int) ((float)y_sum / n_hostiles + 0.5);
 					MapLocation hostileLoc = new MapLocation(x, y);
 
-					Direction dirToMove = hostileLoc.directionTo(myLoc);
+					dirToMove = hostileLoc.directionTo(myLoc);
 
 					int timesRotated = 0;
 					boolean done = false;
@@ -128,7 +185,7 @@ public class Turret
 				RobotInfo[] foes = rc.senseHostileRobots(rc.getLocation(), RobotPlayer.myType.attackRadiusSquared);
 				if(foes.length > 0)
 				{
-					MapLocation myLoc = rc.getLocation();
+					myLoc = rc.getLocation();
 					MapLocation foeLoc = foes[0].location;
 					int meToFoe = myLoc.distanceSquaredTo(foeLoc);
 					if(meToFoe >= GameConstants.TURRET_MINIMUM_RANGE)

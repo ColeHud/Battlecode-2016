@@ -25,6 +25,7 @@ public class Soldier
 	public static int maxMomentum = 0; //how many turns to keep going in a direction, if no guidance to change it
 	public static int momentum = maxMomentum;
 	public static double probProtector = 0.2; //might change based on GameConstants.NUMBER_OF_ARCHONS_MAX
+	public static double probMove = 0.1; //how often to move if can, maybe make lower for protectors?
 	//not sure if that's the max for the specific map
 	//should protect a specific archon? Don't think that's a great idea
 	//continues might be a bad idea
@@ -209,7 +210,7 @@ public class Soldier
 				}
 				else //continue towards goalLoc
 				{
-					if(rc.isCoreReady())
+					if(Math.random() < probMove && rc.isCoreReady())
 					{
 						if((myLoc.distanceSquaredTo(goalLoc) <= closeEnoughSquared) || (stepsLeft <= 0)) // done
 						{
