@@ -25,7 +25,7 @@ public class Soldier
 	public static int maxMomentum = 0; //how many turns to keep going in a direction, if no guidance to change it
 	public static int momentum = maxMomentum;
 	public static double probProtector = 0.2; //might change based on GameConstants.NUMBER_OF_ARCHONS_MAX
-	public static double probMove = 0.1; //how often to move if can, maybe make lower for protectors?
+	public static double probMove = 0.05; //how often to move if can, maybe make lower for protectors?
 	//not sure if that's the max for the specific map
 	//should protect a specific archon? Don't think that's a great idea
 	//continues might be a bad idea
@@ -60,51 +60,55 @@ public class Soldier
 				break;
 			}
 		}
-		dirToMove = makerArchon.location.directionTo(myLoc); //away from archon
-		int movesAwayFromArchon = 2;
-		while(movesAwayFromArchon > 0)
+		if(makerArchon != null)
 		{
-			if(rc.isCoreReady())
+			dirToMove = makerArchon.location.directionTo(myLoc); //away from archon
+			int movesAwayFromArchon = 2;
+			while(movesAwayFromArchon > 0)
 			{
-				int timesRotated = 0;
-				boolean done = false;
-				boolean turnLeft = rand.nextBoolean(); //if true keep turning left, if false keep turning right
-				while((timesRotated < numDirections) && (! done))
+				if(rc.isCoreReady())
 				{
-					double rubble = rc.senseRubble(myLoc.add(dirToMove));
-					if(rubble > GameConstants.RUBBLE_OBSTRUCTION_THRESH)
+					//movement code copied below (to not reuse functions too much, other small diffs)
+					int timesRotated = 0;
+					boolean done = false;
+					boolean turnLeft = rand.nextBoolean(); //if true keep turning left, if false keep turning right
+					while((timesRotated < numDirections) && (! done))
 					{
-						if(rubble >= tooMuchRubble) //try another direction
+						double rubble = rc.senseRubble(myLoc.add(dirToMove));
+						if(rubble > GameConstants.RUBBLE_OBSTRUCTION_THRESH)
 						{
-							dirToMove = turn(dirToMove, turnLeft);
-							timesRotated ++;
-						}
-						else //clear the rubble
-						{
-							rc.clearRubble(dirToMove);
-							done = true;
-						}
-					}
-					else
-					{
-						if(rc.canMove(dirToMove))
-						{
-							rc.move(dirToMove);
-							done = true;
-							myLoc = rc.getLocation();
+							if(rubble >= tooMuchRubble) //try another direction
+							{
+								dirToMove = turn(dirToMove, turnLeft);
+								timesRotated ++;
+							}
+							else //clear the rubble
+							{
+								rc.clearRubble(dirToMove);
+								done = true;
+							}
 						}
 						else
 						{
-							dirToMove = turn(dirToMove, turnLeft);
-							timesRotated ++;
+							if(rc.canMove(dirToMove))
+							{
+								rc.move(dirToMove);
+								done = true;
+								myLoc = rc.getLocation();
+							}
+							else
+							{
+								dirToMove = turn(dirToMove, turnLeft);
+								timesRotated ++;
+							}
 						}
 					}
+					movesAwayFromArchon --;
 				}
-			movesAwayFromArchon --;
+				Clock.yield();
 			}
-			Clock.yield();
-		}		
-				
+		}
+
 		//should also try to get closer to enemies that a soldier can just sense but not attack?
 		while(true)
 		{
@@ -114,7 +118,7 @@ public class Soldier
 				//handle GameActionException?
 				goalLoc = makerArchon.location;
 			}
-			
+
 			//try to attack, if successful then finish turn
 			//does not prioritize who to attack for now
 			if(foesMaybeNearby)
@@ -159,7 +163,7 @@ public class Soldier
 					else //move randomly
 						//this code is copied some below
 					{
-						if(rc.isCoreReady())
+						if(Math.random() < probMove && rc.isCoreReady())
 						{
 							int timesRotated = 0;
 							boolean done = false;
@@ -210,7 +214,7 @@ public class Soldier
 				}
 				else //continue towards goalLoc
 				{
-					if(Math.random() < probMove && rc.isCoreReady())
+					if(rc.isCoreReady())
 					{
 						if((myLoc.distanceSquaredTo(goalLoc) <= closeEnoughSquared) || (stepsLeft <= 0)) // done
 						{
