@@ -31,7 +31,7 @@ public class Soldier
 	//continues might be a bad idea
 	public static void run() throws GameActionException
 	{
-		rc = RobotPlayer.rc;
+		rc = team062RobotPlayer.rc;
 		rand = new Random(rc.getID());
 
 		//make some (20%) into protectors
@@ -60,7 +60,7 @@ public class Soldier
 				break;
 			}
 		}
-		dirToMove = makerArchon.location.directionTo(myLoc); //away from Archon
+		dirToMove = makerArchon.location.directionTo(myLoc); //away from archon
 		int movesAwayFromArchon = 2;
 		while(movesAwayFromArchon > 0)
 		{
