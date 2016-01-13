@@ -126,10 +126,21 @@ public class Soldier
 				if(rc.isWeaponReady()) //maybe different flow here
 				{
 					RobotInfo[] foes = rc.senseHostileRobots(myLoc, RobotPlayer.myType.attackRadiusSquared);
-					if(foes.length > 0)
+					double lowestHealth = 100000;
+					RobotInfo weakestFoe = null;
+					for(RobotInfo foe : foes)
+					{
+						if(foe.health < lowestHealth)
+						{
+							weakestFoe = foe;
+							lowestHealth = foe.health;
+						}
+					}
+					
+					if(foes.length > 0 && weakestFoe != null)
 					{
 						//does randomizing make a difference here?
-						rc.attackLocation(foes[0].location);
+						rc.attackLocation(weakestFoe.location);
 					}
 					else //no foes nearby
 					{
