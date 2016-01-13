@@ -8,10 +8,8 @@ import java.util.*;
  */
 
 //has momentum but can set to 0
-//protectors not implemented yet, first see how the basic guys work
-//all have to stay a little away from archons
+//don't constantly try to give archons space, but do move away from them when spawned
 //could make them clump or swarm more?
-//can use null instead of special null MapLocation
 
 //move constants and all that inside or outside
 
