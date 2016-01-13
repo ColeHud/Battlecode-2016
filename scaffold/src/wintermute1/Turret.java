@@ -189,10 +189,20 @@ public class Turret
 				//maybe some different flow here?
 				//otherwise get foes in your attackRange
 				RobotInfo[] foes = rc.senseHostileRobots(myLoc, RobotPlayer.myType.attackRadiusSquared);
-				if(foes.length > 0)
+				double lowestHealth = 100000;
+				RobotInfo weakestFoe = null;
+				for(RobotInfo foe : foes)
+				{
+					if(foe.health < lowestHealth)
+					{
+						weakestFoe = foe;
+						lowestHealth = foe.health;
+					}
+				}
+				if(foes.length > 0 && weakestFoe != null)
 				{
 					myLoc = rc.getLocation();
-					MapLocation foeLoc = foes[0].location;
+					MapLocation foeLoc = weakestFoe.location;
 					int meToFoe = myLoc.distanceSquaredTo(foeLoc);
 					if(meToFoe >= GameConstants.TURRET_MINIMUM_RANGE)
 					{
