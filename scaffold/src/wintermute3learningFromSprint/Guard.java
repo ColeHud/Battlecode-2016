@@ -5,11 +5,12 @@ public class Guard
 {
 	public static RobotController rc;
 
-	public static void run()
+	public static void run() throws GameActionException
 	{
 		rc = RobotPlayer.rc;
 		while(true)
 		{
+			
 			Clock.yield();
 		}
 	}
