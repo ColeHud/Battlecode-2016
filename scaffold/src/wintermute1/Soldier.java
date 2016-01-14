@@ -22,7 +22,7 @@ public class Soldier
 	public static int numDirections = directions.length;
 	public static int maxMomentum = 5; //how many turns to keep going in a direction, if no guidance to change it
 	public static int momentum = maxMomentum;
-	public static double probProtector = 0.2; //might change based on GameConstants.NUMBER_OF_ARCHONS_MAX
+	public static double probProtector = 0.1; //might change based on GameConstants.NUMBER_OF_ARCHONS_MAX
 	public static double probMove = 0.2; //how often to move if can, maybe make lower for protectors?
 	//not sure if that's the max for the specific map
 	
@@ -52,6 +52,7 @@ public class Soldier
 		MapLocation myLoc = rc.getLocation();
 		int makerArchonID = 0; //doesn't seem to work?
 		RobotInfo makerArchon = null;
+		
 		//move a little away from archon
 		RobotInfo[] nearbyRobots = rc.senseNearbyRobots(4);
 		for (RobotInfo robot : nearbyRobots)
@@ -71,7 +72,7 @@ public class Soldier
 			{
 				if(rc.isCoreReady())
 				{
-					//movement code copied below (to not reuse functions too much, other small diffs)
+					//movement code copied below (a little specialized)
 					int timesRotated = 0;
 					boolean done = false;
 					boolean turnLeft = rand.nextBoolean(); //if true keep turning left, if false keep turning right
@@ -99,7 +100,7 @@ public class Soldier
 								rc.move(dirToMove);
 								if(timesRotated > 0)
 								{
-									momentum = maxMomentum; //so try to go around the wall?
+									momentum = maxMomentum; //so tries to go around the wall?
 								}
 								done = true;
 								myLoc = rc.getLocation();
@@ -117,14 +118,19 @@ public class Soldier
 			}
 		}
 
-		//should also try to get closer to enemies that a soldier can just sense but not attack?
 		while(true)
 		{
 			if(isProtector)
 			{
-				makerArchon = rc.senseRobot(makerArchonID);
-				//handle GameActionException?
-				goalLoc = makerArchon.location;
+				try
+				{
+					makerArchon = rc.senseRobot(makerArchonID);
+					goalLoc = makerArchon.location;
+				}
+				catch (Exception GameActionException)
+				{
+					//nothing
+				}
 			}
 
 			//try to attack, if successful then finish turn
@@ -160,7 +166,7 @@ public class Soldier
 					}
 					*/
 					
-					//normal attacking, just trying out, first guy
+					//normal attacking, just trying out, not sure if using too much bytecode is a problem, first guy
 					if(foes.length > 0)
 					{
 						if(Math.random() < probSignal)
