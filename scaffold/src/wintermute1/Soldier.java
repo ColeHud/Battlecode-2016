@@ -20,16 +20,20 @@ public class Soldier
 	public static Direction[] directions = {Direction.NORTH, Direction.NORTH_EAST, Direction.EAST, Direction.SOUTH_EAST,
 			Direction.SOUTH, Direction.SOUTH_WEST, Direction.WEST, Direction.NORTH_WEST};
 	public static int numDirections = directions.length;
-	public static int maxMomentum = 0; //how many turns to keep going in a direction, if no guidance to change it
+	public static int maxMomentum = 1; //how many turns to keep going in a direction, if no guidance to change it
 	public static int momentum = maxMomentum;
 	public static double probProtector = 0.2; //might change based on GameConstants.NUMBER_OF_ARCHONS_MAX
 	public static double probMove = 0.05; //how often to move if can, maybe make lower for protectors?
 	//not sure if that's the max for the specific map
 	//should protect a specific archon? Don't think that's a great idea
+	
+	public static int foeSignalRadiusSquared = 25; 
+		
 	//continues might be a bad idea
 	public static void run() throws GameActionException
 	{
 		rc = RobotPlayer.rc;
+		Team myTeam = rc.getTeam();
 		rand = new Random(rc.getID());
 
 		//make some (20%) into protectors
@@ -42,7 +46,7 @@ public class Soldier
 		int closeEnoughSquared = 4; //how close you have to get to a goalLoc (squared)
 		int stepsLeft = 100; //max number of steps to take to get to a goalLoc (don't want to try forever)
 		//in code depends on distance from myLoc to goalLoc
-		double tooMuchRubble = 50; //how much rubble there has to be so that the soldiers don't try to clear it
+		double tooMuchRubble = 300; //how much rubble there has to be so that the soldiers don't try to clear it
 		boolean foesMaybeNearby = true; //used to restart while loop
 		MapLocation myLoc = rc.getLocation();
 		int makerArchonID = 0;
@@ -124,6 +128,8 @@ public class Soldier
 				if(rc.isWeaponReady()) //maybe different flow here
 				{
 					RobotInfo[] foes = rc.senseHostileRobots(myLoc, RobotPlayer.myType.attackRadiusSquared);
+					
+					/*
 					double lowestHealth = 100000;
 					RobotInfo weakestFoe = null;
 					for(RobotInfo foe : foes)
@@ -137,8 +143,23 @@ public class Soldier
 					
 					if(foes.length > 0 && weakestFoe != null)
 					{
+						rc.broadcastSignal(foeSignalRadiusSquared);
 						//does randomizing make a difference here?
 						rc.attackLocation(weakestFoe.location);
+					}
+					else //no foes nearby
+					{
+						foesMaybeNearby = false;
+						continue;
+					}
+					*/
+					
+					//normal attacking, just trying out, first guy
+					if(foes.length > 0)
+					{
+						rc.broadcastSignal(foeSignalRadiusSquared);
+						//does randomizing make a difference here?
+						rc.attackLocation(foes[0].location);
 					}
 					else //no foes nearby
 					{
@@ -155,8 +176,7 @@ public class Soldier
 					Signal[] signals = rc.emptySignalQueue();
 					for(Signal signal : signals)
 					{
-						int[] message = signal.getMessage();
-						if((message != null) && (message[0] == Utility.SOLDIER_HELP_CODE))
+						if((signal.getMessage() == null) && (signal.getTeam() == myTeam))
 						{
 							goalLoc = signal.getLocation();
 							stepsLeft = myLoc.distanceSquaredTo(goalLoc); //not sure what would be better

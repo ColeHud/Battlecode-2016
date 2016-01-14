@@ -23,6 +23,9 @@ public class Archon
 	public static ArrayList<RobotInfo> foes;
 	public static ArrayList<RobotInfo> foesWithinAttackRange;
 
+	//messages
+	public static int archonInTroubleSignalRadiusSquared = 100;
+	
 	public static void run() throws GameActionException
 	{
 		rc = RobotPlayer.rc;
@@ -144,6 +147,9 @@ public class Archon
 			}
 			else//there are foes nearby
 			{
+				//message for help!
+				rc.broadcastSignal(archonInTroubleSignalRadiusSquared);
+				
 				if(nearbyFoesInAttackRange > 0)
 				{
 					goal = findSaferLocation();
@@ -355,9 +361,13 @@ public class Archon
 				{
 					typeToBuild = RobotType.TURRET;
 				}
-				else //build a soldier
+				else if(percent <= Utility.PERCENTAGE_TURRETS + Utility.PERCENTAGE_SOLDIERS) //build a soldier
 				{
 					typeToBuild = RobotType.SOLDIER;
+				}
+				else
+				{
+					typeToBuild = RobotType.SCOUT;
 				}
 			}
 		}

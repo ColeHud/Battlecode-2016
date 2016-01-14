@@ -21,6 +21,8 @@ public class Turret
 	public static double tooMuchRubble = 50; //how much rubble there has to be so that the soldiers don't try to clear it
 	public static int squaredMinStartDistFromArchon = 4;
 
+	public static int foeSignalRadiusSquared = 25; 
+	
 	public static void run() throws GameActionException
 	{
 		rc = RobotPlayer.rc;
@@ -189,6 +191,8 @@ public class Turret
 				//maybe some different flow here?
 				//otherwise get foes in your attackRange
 				RobotInfo[] foes = rc.senseHostileRobots(myLoc, RobotPlayer.myType.attackRadiusSquared);
+				
+				/* Code for minHealth way
 				double lowestHealth = 100000;
 				RobotInfo weakestFoe = null;
 				for(RobotInfo foe : foes)
@@ -203,6 +207,13 @@ public class Turret
 				{
 					myLoc = rc.getLocation();
 					MapLocation foeLoc = weakestFoe.location;
+				*/
+				
+				if(foes.length > 0)
+				{
+					myLoc = rc.getLocation();
+					MapLocation foeLoc = foes[0].location;
+					rc.broadcastSignal(foeSignalRadiusSquared); 
 					int meToFoe = myLoc.distanceSquaredTo(foeLoc);
 					if(meToFoe >= GameConstants.TURRET_MINIMUM_RANGE)
 					{
