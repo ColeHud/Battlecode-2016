@@ -23,12 +23,12 @@ public class Soldier
 	public static int maxMomentum = 1; //how many turns to keep going in a direction, if no guidance to change it
 	public static int momentum = maxMomentum;
 	public static double probProtector = 0.2; //might change based on GameConstants.NUMBER_OF_ARCHONS_MAX
-	public static double probMove = 0.05; //how often to move if can, maybe make lower for protectors?
+	public static double probMove = 0.2; //how often to move if can, maybe make lower for protectors?
 	//not sure if that's the max for the specific map
-	//should protect a specific archon? Don't think that's a great idea
 	
-	public static int foeSignalRadiusSquared = 25; 
-		
+	public static int foeSignalRadiusSquared = 100; 
+	public static double probSignal = 0.1;	
+	
 	//continues might be a bad idea
 	public static void run() throws GameActionException
 	{
@@ -46,10 +46,11 @@ public class Soldier
 		int closeEnoughSquared = 4; //how close you have to get to a goalLoc (squared)
 		int stepsLeft = 100; //max number of steps to take to get to a goalLoc (don't want to try forever)
 		//in code depends on distance from myLoc to goalLoc
-		double tooMuchRubble = 300; //how much rubble there has to be so that the soldiers don't try to clear it
+		double startTooMuchRubble = 3000; //how much rubble there has to be so that the soldiers don't try to clear it
+		double tooMuchRubble = startTooMuchRubble; //how much rubble there has to be so that the soldiers don't try to clear it
 		boolean foesMaybeNearby = true; //used to restart while loop
 		MapLocation myLoc = rc.getLocation();
-		int makerArchonID = 0;
+		int makerArchonID = 0; //doesn't seem to work?
 		RobotInfo makerArchon = null;
 		//move a little away from archon
 		RobotInfo[] nearbyRobots = rc.senseNearbyRobots(4);
@@ -81,6 +82,7 @@ public class Soldier
 						{
 							if(rubble >= tooMuchRubble) //try another direction
 							{
+								tooMuchRubble *= 1.1;
 								dirToMove = turn(dirToMove, turnLeft);
 								timesRotated ++;
 							}
@@ -95,6 +97,10 @@ public class Soldier
 							if(rc.canMove(dirToMove))
 							{
 								rc.move(dirToMove);
+								if(timesRotated > 0)
+								{
+									momentum = 5;
+								}
 								done = true;
 								myLoc = rc.getLocation();
 							}
@@ -157,9 +163,15 @@ public class Soldier
 					//normal attacking, just trying out, first guy
 					if(foes.length > 0)
 					{
-						rc.broadcastSignal(foeSignalRadiusSquared);
+						if(Math.random() < probSignal)
+						{
+							rc.broadcastSignal(foeSignalRadiusSquared);
+						}
 						//does randomizing make a difference here?
-						rc.attackLocation(foes[0].location);
+						if(rc.isWeaponReady())
+						{
+							rc.attackLocation(foes[0].location);
+						}
 					}
 					else //no foes nearby
 					{

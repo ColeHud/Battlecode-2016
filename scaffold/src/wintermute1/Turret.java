@@ -21,7 +21,8 @@ public class Turret
 	public static double tooMuchRubble = 50; //how much rubble there has to be so that the soldiers don't try to clear it
 	public static int squaredMinStartDistFromArchon = 4;
 
-	public static int foeSignalRadiusSquared = 25; 
+	public static int foeSignalRadiusSquared = 49; 
+	public static double probSignal = 0.1;	
 	
 	public static void run() throws GameActionException
 	{
@@ -213,7 +214,10 @@ public class Turret
 				{
 					myLoc = rc.getLocation();
 					MapLocation foeLoc = foes[0].location;
-					rc.broadcastSignal(foeSignalRadiusSquared); 
+					if(Math.random() < probSignal)
+					{
+						rc.broadcastSignal(foeSignalRadiusSquared);
+					}
 					int meToFoe = myLoc.distanceSquaredTo(foeLoc);
 					if(meToFoe >= GameConstants.TURRET_MINIMUM_RANGE)
 					{

@@ -104,10 +104,11 @@ public class Archon
 			int nearbyFoes = foes.size();
 			int nearbyFoesInAttackRange = foesWithinAttackRange.size();
 
-			//check stats
+			/*//check stats
 			double health = rc.getHealth();
 			int infectedTurns = rc.getInfectedTurns();
 			int robotsAlive = rc.getRobotCount();
+			*/
 
 			/*
 			 * OUPUT
@@ -168,9 +169,9 @@ public class Archon
 	{
 		MapLocation currentLocation = rc.getLocation();
 		ArrayList<Direction> directions = Utility.arrayListOfDirections();
-		ArrayList<Integer> enemiesInEachDirection = new ArrayList<Integer>(10);
 
 		/*
+		ArrayList<Integer> enemiesInEachDirection = new ArrayList<Integer>(10);
 		//initialize the enemiesInEachDirection arraylist
 		for(int i = 0; i < 10; i++)
 		{
@@ -218,7 +219,7 @@ public class Archon
 		}
 
 		//get the average direction to them
-		ArrayList<Direction> listOfDirections = Utility.arrayListOfDirections();
+		//ArrayList<Direction> listOfDirections = Utility.arrayListOfDirections();
 		int averageDirection = 0;
 		for(RobotInfo foe : nearAttackRange)
 		{

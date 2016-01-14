@@ -161,7 +161,7 @@ public class Turret
 			}
 			else
 			{
-				//attack any foes sending messages if you can
+				//attack any foes sending messages if you can?
 				//should save locs of all foes? May get outdated fast
 				if(rc.isWeaponReady())
 				{
