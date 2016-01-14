@@ -20,7 +20,7 @@ public class Soldier
 	public static Direction[] directions = {Direction.NORTH, Direction.NORTH_EAST, Direction.EAST, Direction.SOUTH_EAST,
 			Direction.SOUTH, Direction.SOUTH_WEST, Direction.WEST, Direction.NORTH_WEST};
 	public static int numDirections = directions.length;
-	public static int maxMomentum = 1; //how many turns to keep going in a direction, if no guidance to change it
+	public static int maxMomentum = 5; //how many turns to keep going in a direction, if no guidance to change it
 	public static int momentum = maxMomentum;
 	public static double probProtector = 0.2; //might change based on GameConstants.NUMBER_OF_ARCHONS_MAX
 	public static double probMove = 0.2; //how often to move if can, maybe make lower for protectors?
@@ -99,7 +99,7 @@ public class Soldier
 								rc.move(dirToMove);
 								if(timesRotated > 0)
 								{
-									momentum = 5;
+									momentum = maxMomentum; //so try to go around the wall?
 								}
 								done = true;
 								myLoc = rc.getLocation();
