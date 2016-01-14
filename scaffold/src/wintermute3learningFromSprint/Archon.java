@@ -13,6 +13,7 @@ public class Archon
 
 	//initial stuff
 	public static MapLocation averageArchonLocation;
+	public static boolean madeItToAverageArchonLocation = false;
 	public static int[] zombieSpawnRounds;
 
 	public static void run() throws GameActionException
@@ -24,22 +25,118 @@ public class Archon
 
 		while(true)
 		{
-			
-			
+			RobotInfo[] foes = rc.senseHostileRobots(rc.getLocation(), RobotType.ARCHON.sensorRadiusSquared);
+
+			if(foes.length > 0)//if there are foes nearby
+			{
+				moveToLocation(findSaferLocation());
+			}
+			else
+			{
+				meetUpWithOtherArchons();
+				buildStrategicRobot();
+			}
+
 			Clock.yield();
 		}
 	}
-	
-	//build a robot based on the strategy
-	public static void buildStrategicRobot()
+
+	//find a safe location
+	public static MapLocation findSaferLocation()//move to far spot in direction with fewest enemies
 	{
-		if(strategyNumber == 1)//turtle
+		MapLocation currentLocation = rc.getLocation();
+		ArrayList<Direction> directions = Utility.arrayListOfDirections();
+
+
+		//find if foes are within attack range
+		RobotInfo[] foes = rc.senseHostileRobots(rc.getLocation(), RobotType.SCOUT.sensorRadiusSquared);
+		ArrayList<RobotInfo> nearAttackRange = new ArrayList<RobotInfo>();
+
+		for(RobotInfo foe : foes)
 		{
-			
+			RobotType type = foe.type;
+			if(type != RobotType.ARCHON && type != RobotType.ZOMBIEDEN && type != RobotType.SCOUT)//only want enemies who can attack
+			{
+				//if you're close to the attack range
+				if(currentLocation.distanceSquaredTo(foe.location) < foe.type.attackRadiusSquared + 4)
+				{
+					nearAttackRange.add(foe);
+				}
+			}
 		}
-		else if(strategyNumber == 2)//big army
+
+		//get the average direction to them
+		//ArrayList<Direction> listOfDirections = Utility.arrayListOfDirections();
+		int averageDirection = 0;
+		for(RobotInfo foe : nearAttackRange)
 		{
-		
+			averageDirection += directions.indexOf(currentLocation.directionTo(foe.location));
+		}
+		if(nearAttackRange.size() > 0)
+		{
+			averageDirection /= nearAttackRange.size();
+			Direction directionToEnemies = directions.get(averageDirection);
+
+			//move in that direction as far as you can see
+			MapLocation locationToGoTo = currentLocation.add(directionToEnemies.opposite(), (int)Math.sqrt(RobotType.ARCHON.sensorRadiusSquared));
+			return locationToGoTo;
+		}
+		else
+		{
+			return rc.getLocation();
+		}
+	}
+
+	//meet up with the other archons at the start of the game if you're going to turtle
+	public static void meetUpWithOtherArchons() throws GameActionException
+	{
+		if(strategyNumber == 1 && madeItToAverageArchonLocation == false && rc.getRoundNum() < 100)
+		{
+			moveToLocation(averageArchonLocation);
+			if(rc.getLocation().distanceSquaredTo(averageArchonLocation) < 5)
+			{
+				madeItToAverageArchonLocation = true;
+			}
+		}
+	}
+
+	//build a robot based on the strategy
+	public static void buildStrategicRobot() throws GameActionException
+	{
+		if(rc.getTeamParts() >= RobotType.TURRET.partCost)
+		{
+			if(strategyNumber == 1)//turtle
+			{
+				double percent = Math.random();
+				if(percent <= .5)//build a turret
+				{
+					buildRobot(RobotType.TURRET);
+				}
+				else if(percent > .5 && percent <= .75)//guard
+				{
+					buildRobot(RobotType.GUARD);
+				}
+				else//soldier
+				{
+					buildRobot(RobotType.SOLDIER);
+				}
+			}
+			else if(strategyNumber == 2)//big army
+			{
+				double percent = Math.random();
+				if(percent <= .5)//build a soldier
+				{
+					buildRobot(RobotType.SOLDIER);
+				}
+				else if(percent > .5 && percent <= .75)//guard
+				{
+					buildRobot(RobotType.GUARD);
+				}
+				else//turret
+				{
+					buildRobot(RobotType.TURRET);
+				}
+			}
 		}
 	}
 

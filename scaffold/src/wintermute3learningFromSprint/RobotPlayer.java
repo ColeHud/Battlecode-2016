@@ -16,23 +16,23 @@ public class RobotPlayer
         }
         else if(myType == RobotType.SCOUT)
         {
-        	//Scout.run();
+        	Scout.run();
         }
         else if(myType == RobotType.SOLDIER)
         {
-        	//Soldier.run();
+        	Soldier.run();
         }
         else if(myType == RobotType.TURRET)
         {
-        	//Turret.run();
+        	Turret.run();
         }
         else if(myType == RobotType.GUARD)
         {
-        	
+        	Guard.run();
         }
         else if(myType == RobotType.VIPER)
         {
-        	
+        	Viper.run();
         }
         else
         {
