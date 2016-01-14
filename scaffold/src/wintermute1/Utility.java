@@ -10,8 +10,8 @@ public class Utility
 	public static final int PARTS_CODE = 94572;
 	public static final int SOLDIER_HELP_CODE = 97525;
 	
-	public static final double PERCENTAGE_TURRETS = 0.25;
-	public static final double PERCENTAGE_SOLDIERS = 0.7;
+	public static final double PERCENTAGE_TURRETS = 0;
+	public static final double PERCENTAGE_SOLDIERS = 0.97;
 	public static final double PERCENTAGE_SCOUTS = 1 - PERCENTAGE_TURRETS - PERCENTAGE_SOLDIERS;
 	public static final int MAX_FOES_TO_BUILD = 4;
 	

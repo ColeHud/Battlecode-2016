@@ -20,11 +20,19 @@ public class Soldier
 	public static Direction[] directions = {Direction.NORTH, Direction.NORTH_EAST, Direction.EAST, Direction.SOUTH_EAST,
 			Direction.SOUTH, Direction.SOUTH_WEST, Direction.WEST, Direction.NORTH_WEST};
 	public static int numDirections = directions.length;
+	
+	public static double probMove = 0.2; //how often to move if can, maybe make lower for protectors?
+	
 	public static int maxMomentum = 5; //how many turns to keep going in a direction, if no guidance to change it
 	public static int momentum = maxMomentum;
-	public static double probProtector = 0.1; //might change based on GameConstants.NUMBER_OF_ARCHONS_MAX
-	public static double probMove = 0.2; //how often to move if can, maybe make lower for protectors?
-	//not sure if that's the max for the specific map
+	
+	public static int closeEnoughSquared = 1; //how close you have to get to a goalLoc (squared)
+	public static int stepsLeft = 25; //max number of steps to take to get to a goalLoc (don't want to try forever)
+	
+	public static double probProtector = 0; //might change based on GameConstants.NUMBER_OF_ARCHONS_MAX
+	
+	public static double probIgnoreRubble = 0.2;
+	public static double startTooMuchRubble = 1000; //how much rubble there has to be so that the soldiers don't try to clear it
 	
 	public static int foeSignalRadiusSquared = 100; 
 	public static double probSignal = 0.1;	
@@ -34,20 +42,19 @@ public class Soldier
 	{
 		rc = RobotPlayer.rc;
 		Team myTeam = rc.getTeam();
-		rand = new Random(rc.getID());
+		rand = new Random(rc.getID()); //ever used?
 
 		//make some (20%) into protectors
 		boolean isProtector = Math.random() < probProtector;
 
+		double tooMuchRubble = startTooMuchRubble; //how much rubble there has to be so that this soldier won't try to clear it
+		
 		MapLocation goalLoc = null;
 		Direction dirToMove = Direction.NONE;
 		boolean offCourse = false; //whether the soldier turned in getting to a location
 		//means will have to recompute the direction to the goal
-		int closeEnoughSquared = 4; //how close you have to get to a goalLoc (squared)
-		int stepsLeft = 100; //max number of steps to take to get to a goalLoc (don't want to try forever)
+		
 		//in code depends on distance from myLoc to goalLoc
-		double startTooMuchRubble = 3000; //how much rubble there has to be so that the soldiers don't try to clear it
-		double tooMuchRubble = startTooMuchRubble; //how much rubble there has to be so that the soldiers don't try to clear it
 		boolean foesMaybeNearby = true; //used to restart while loop
 		MapLocation myLoc = rc.getLocation();
 		int makerArchonID = 0; //doesn't seem to work?
@@ -81,7 +88,7 @@ public class Soldier
 						double rubble = rc.senseRubble(myLoc.add(dirToMove));
 						if(rubble > GameConstants.RUBBLE_OBSTRUCTION_THRESH)
 						{
-							if(rubble >= tooMuchRubble) //try another direction
+							if(rubble >= tooMuchRubble && Math.random() < probIgnoreRubble) //try another direction
 							{
 								tooMuchRubble *= 1.1;
 								dirToMove = turn(dirToMove, turnLeft);
@@ -141,7 +148,6 @@ public class Soldier
 				{
 					RobotInfo[] foes = rc.senseHostileRobots(myLoc, RobotPlayer.myType.attackRadiusSquared);
 					
-					/*
 					double lowestHealth = 100000;
 					RobotInfo weakestFoe = null;
 					for(RobotInfo foe : foes)
@@ -155,30 +161,25 @@ public class Soldier
 					
 					if(foes.length > 0 && weakestFoe != null)
 					{
-						rc.broadcastSignal(foeSignalRadiusSquared);
-						//does randomizing make a difference here?
 						rc.attackLocation(weakestFoe.location);
-					}
-					else //no foes nearby
-					{
-						foesMaybeNearby = false;
-						continue;
-					}
-					*/
-					
-					//normal attacking, just trying out, not sure if using too much bytecode is a problem, first guy
-					if(foes.length > 0)
-					{
 						if(Math.random() < probSignal)
 						{
 							rc.broadcastSignal(foeSignalRadiusSquared);
 						}
+					}
+					/*
+					//normal attacking, too much bytecode may be a problem, takes first guy
+					if(foes.length > 0)
+					{
 						//does randomizing make a difference here?
-						if(rc.isWeaponReady())
+						rc.attackLocation(foes[0].location);
+						
+						if(Math.random() < probSignal)
 						{
-							rc.attackLocation(foes[0].location);
+							rc.broadcastSignal(foeSignalRadiusSquared);
 						}
 					}
+					*/
 					else //no foes nearby
 					{
 						foesMaybeNearby = false;

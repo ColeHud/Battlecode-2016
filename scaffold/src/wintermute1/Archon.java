@@ -12,7 +12,8 @@ public class Archon
 	public static boolean goalIsASafeLocation = false;
 	public static RobotType typeToBuild = RobotType.SOLDIER;
 
-
+	public static double probSignal = 0.2; //prob that it'll send a signal if sees enemy
+	
 	//locations
 	public static MapLocation[] nearbyMapLocations;
 	public static MapLocation[] nearbyPartsLocations;
@@ -24,13 +25,17 @@ public class Archon
 	public static ArrayList<RobotInfo> foesWithinAttackRange;
 
 	//messages
-	public static int archonInTroubleSignalRadiusSquared = 100;
+	public static int archonInTroubleSignalRadiusSquared = 144;
+	
+	//rubble
+	public static double tooMuchRubble = 100;
+	public static double probClearRubbleAnyways = 0.2;
 	
 	public static void run() throws GameActionException
 	{
 		rc = RobotPlayer.rc;
 		rand = new Random(rc.getID());
-
+		
 		//build scouts right away
 		buildRobot(RobotType.SCOUT);
 
@@ -149,7 +154,10 @@ public class Archon
 			else//there are foes nearby
 			{
 				//message for help!
-				rc.broadcastSignal(archonInTroubleSignalRadiusSquared);
+				if(Math.random() < probSignal)
+				{
+					rc.broadcastSignal(archonInTroubleSignalRadiusSquared);
+				}
 				
 				if(nearbyFoesInAttackRange > 0)
 				{
@@ -266,7 +274,7 @@ public class Archon
 		else
 		{
 			//first, check if you should remove rubble. only if the surrounding squares are empty
-			boolean shouldRemoveRubble = false;
+			//boolean shouldRemoveRubble = false;
 			int directionsWithRubble = 0;
 			for(Direction d : Direction.values())
 			{
@@ -312,7 +320,8 @@ public class Archon
 	//can move to a location
 	public static boolean canMoveThere(Direction d, MapLocation m)
 	{
-		if(past10Locations.contains(m) == false && rc.senseRubble(m) < 50 && rc.canMove(d))//make sure it's not part of the slug trail and it's not blocked by rubble and you can move there
+		//check not too any rubble? && rc.senseRubble(m) < 50, seems to maybe get it stuck in big piles of rubble
+		if(past10Locations.contains(m) == false && rc.canMove(d))//make sure it's not part of the slug trail and it's not blocked by rubble and you can move there
 		{
 			return true;
 		}
@@ -327,7 +336,7 @@ public class Archon
 	{
 		MapLocation m = rc.getLocation().add(d);
 
-		if(rc.senseRubble(m) < 50)//if it's less than 20, just move there
+		if(rc.senseRubble(m) < tooMuchRubble || Math.random() < probClearRubbleAnyways)//if it's less than 20, just move there
 		{
 			if(rc.isCoreReady() && rc.canMove(d))
 			{
@@ -336,7 +345,7 @@ public class Archon
 		}
 		else//clear it
 		{
-			if(rc.isCoreReady() && rc.canAttackLocation(m))
+			if(rc.isCoreReady())
 			{
 				rc.clearRubble(d);	
 			}
