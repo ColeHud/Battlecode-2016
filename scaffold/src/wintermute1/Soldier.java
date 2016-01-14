@@ -23,7 +23,7 @@ public class Soldier
 	
 	public static double probMove = 0.2; //how often to move if can, maybe make lower for protectors?
 	
-	public static int maxMomentum = 5; //how many turns to keep going in a direction, if no guidance to change it
+	public static int maxMomentum = 0; //how many turns to keep going in a direction, if no guidance to change it
 	public static int momentum = maxMomentum;
 	
 	public static int closeEnoughSquared = 1; //how close you have to get to a goalLoc (squared)
@@ -31,8 +31,9 @@ public class Soldier
 	
 	public static double probProtector = 0; //might change based on GameConstants.NUMBER_OF_ARCHONS_MAX
 	
-	public static double probIgnoreRubble = 0.2;
-	public static double startTooMuchRubble = 1000; //how much rubble there has to be so that the soldiers don't try to clear it
+	public static double probIgnoreRubbleIfNotTooMuch = 0.2;
+	//just going for, clear the rubble!
+	public static double startTooMuchRubble = 3000; //how much rubble there has to be so that the soldiers don't try to clear it
 	
 	public static int foeSignalRadiusSquared = 100; 
 	public static double probSignal = 0.1;	
@@ -88,9 +89,10 @@ public class Soldier
 						double rubble = rc.senseRubble(myLoc.add(dirToMove));
 						if(rubble > GameConstants.RUBBLE_OBSTRUCTION_THRESH)
 						{
-							if(rubble >= tooMuchRubble && Math.random() < probIgnoreRubble) //try another direction
+							if(rubble >= tooMuchRubble && Math.random() < probIgnoreRubbleIfNotTooMuch) //try another direction
 							{
-								tooMuchRubble *= 1.1;
+								tooMuchRubble *= 2;
+								System.out.println("ha!");
 								dirToMove = turn(dirToMove, turnLeft);
 								timesRotated ++;
 							}

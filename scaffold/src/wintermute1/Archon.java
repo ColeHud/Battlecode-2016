@@ -226,6 +226,31 @@ public class Archon
 			}
 		}
 
+		//get average loc of hostiles
+		//could also just run away from the closest hostile
+		//neither one of those would have you go up or down if you have enemies directly to
+		//your left and right
+		int n_hostiles = 0;
+		int x_sum = 0;
+		int y_sum = 0;
+		if(nearAttackRange.size() > 0)
+		{
+			for(RobotInfo robot : nearAttackRange)
+			{
+				n_hostiles ++;
+				MapLocation robotLoc = robot.location;
+				x_sum += robotLoc.x;
+				y_sum += robotLoc.y;
+			}
+			int x = x_sum / n_hostiles;
+			int y = y_sum / n_hostiles;
+			MapLocation hostileLoc = new MapLocation(x, y);
+			Direction dirToMove = hostileLoc.directionTo(rc.getLocation());
+			MapLocation locationToGoTo = currentLocation.add(dirToMove, (int)Math.sqrt(RobotType.ARCHON.sensorRadiusSquared));
+			return locationToGoTo;
+		}
+		
+		/* OTHER WAY TO DO IT
 		//get the average direction to them
 		//ArrayList<Direction> listOfDirections = Utility.arrayListOfDirections();
 		int averageDirection = 0;
@@ -242,6 +267,8 @@ public class Archon
 			MapLocation locationToGoTo = currentLocation.add(directionToEnemies.opposite(), (int)Math.sqrt(RobotType.ARCHON.sensorRadiusSquared));
 			return locationToGoTo;
 		}
+		*/
+		
 		else
 		{
 			return rc.getLocation();
