@@ -22,7 +22,7 @@ public class Soldier
 	public static int numDirections = directions.length;
 	public static int maxMomentum = 5; //how many turns to keep going in a direction, if no guidance to change it
 	public static int momentum = maxMomentum;
-	public static double probProtector = 0.2; //might change based on GameConstants.NUMBER_OF_ARCHONS_MAX
+	public static double probProtector = 0.1; //might change based on GameConstants.NUMBER_OF_ARCHONS_MAX
 	public static double probMove = 0.2; //how often to move if can, maybe make lower for protectors?
 	//not sure if that's the max for the specific map
 	
