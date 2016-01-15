@@ -9,42 +9,73 @@ public class Turret
 
 	//slug trail for pathing
 	public static ArrayList<MapLocation> slugTrail = new ArrayList<MapLocation>(20);
+	
+	//goal maplocation
+	public static MapLocation goal = null;
 
 	public static void run() throws GameActionException
 	{
 		rc = RobotPlayer.rc;
 		while(true)
 		{
-			RobotInfo[] nearbyFoes = rc.senseHostileRobots(rc.getLocation(), RobotType.TURRET.sensorRadiusSquared);
-
-			if(nearbyFoes.length > 0)//if there are foes nearby
+			//read scout signal
+			
+			//attack foes
+			RobotInfo[] foes = rc.senseHostileRobots(rc.getLocation(), RobotType.TURRET.attackRadiusSquared);
+			double lowestHealth = 100000;
+			RobotInfo weakestFoe = null;
+			
+			for(RobotInfo foe : foes)
 			{
-				//attack
-				RobotInfo[] foes = rc.senseHostileRobots(rc.getLocation(), RobotType.TURRET.attackRadiusSquared);
-				double lowestHealth = 10000;
-				RobotInfo weakestFoe = null;
-				
-				for(RobotInfo foe : foes)
+				if(rc.getLocation().distanceSquaredTo(foe.location) > 5 && foe.health < lowestHealth)
 				{
-					if(foe.health < lowestHealth)
-					{
-						lowestHealth = foe.health;
-						weakestFoe = foe;
-					}
+					lowestHealth = foe.health;
+					weakestFoe = foe;
 				}
-				
-				if(weakestFoe != null)
+			}
+			
+			if(weakestFoe != null)
+			{
+				if(rc.getType() == RobotType.TURRET && rc.isCoreReady() && rc.isWeaponReady())
 				{
-					if(rc.isWeaponReady() && rc.isCoreReady() && rc.getLocation().distanceSquaredTo(weakestFoe.location) > 5)
+					rc.attackLocation(weakestFoe.location);
+					continue;
+				}
+			}
+			
+			if(goal != null)
+			{
+				if(rc.getLocation().equals(goal))
+				{
+					if(rc.getType() == RobotType.TTM)
 					{
-						rc.attackLocation(weakestFoe.location);
+						rc.unpack();
+					}
+					goal = null;
+				}
+				else
+				{
+					moveToLocation(goal);
+				}
+			}
+			
+			//organize
+			//if you're blocking another unit, get out of the way
+			RobotInfo[] friends = rc.senseNearbyRobots(4, rc.getTeam());
+			if(friends.length > 0)
+			{
+				for(RobotInfo friend : friends)
+				{
+					if(rc.getLocation().distanceSquaredTo(friend.location) <= 1)
+					{
+						//try to move away
+						Direction directionAway = rc.getLocation().directionTo(friend.location).opposite();
+						goal = rc.getLocation().add(directionAway);
 					}
 				}
 			}
-			else//if there aren't foes nearby
-			{
-				
-			}
+			
+			//move
 
 			Clock.yield();
 		}
@@ -52,16 +83,14 @@ public class Turret
 
 	//move to a location
 	public static void moveToLocation(MapLocation location) throws GameActionException
-	{
-		if(rc.getLocation().equals(location))
-		{
-			rc.unpack();
-			return;
-		}
-		
+	{	
 		if(rc.isCoreReady())
 		{
-			rc.pack();
+			if(rc.getType() == RobotType.TURRET)
+			{
+				rc.pack();
+			}
+
 			MapLocation currentLocation = rc.getLocation();
 
 			//trim the slug trail to size 20
@@ -83,7 +112,7 @@ public class Turret
 					locationInDirection = currentLocation.add(candidateDirection);
 					rubbleAtLocation = rc.senseRubble(locationInDirection);
 
-					if(rc.canMove(candidateDirection) && slugTrail.contains(locationInDirection) == false && rubbleAtLocation < GameConstants.RUBBLE_OBSTRUCTION_THRESH)//move there then return
+					if(rc.isCoreReady() && rc.canMove(candidateDirection) && slugTrail.contains(locationInDirection) == false && rubbleAtLocation < GameConstants.RUBBLE_OBSTRUCTION_THRESH)//move there then return
 					{
 						rc.setIndicatorString(0, "Trying to move");
 						rc.move(candidateDirection);
@@ -94,7 +123,7 @@ public class Turret
 			}
 			else
 			{
-				if(rc.canMove(candidateDirection) && rubbleAtLocation < GameConstants.RUBBLE_OBSTRUCTION_THRESH)
+				if(rc.isCoreReady() && rc.canMove(candidateDirection) && rubbleAtLocation < GameConstants.RUBBLE_OBSTRUCTION_THRESH)
 				{
 					rc.move(candidateDirection);
 				}
@@ -106,7 +135,7 @@ public class Turret
 						locationInDirection = currentLocation.add(candidateDirection);
 						rubbleAtLocation = rc.senseRubble(locationInDirection);
 
-						if(rc.canMove(candidateDirection) && slugTrail.contains(locationInDirection) == false && rubbleAtLocation < GameConstants.RUBBLE_OBSTRUCTION_THRESH)//move there then return
+						if(rc.isCoreReady() && rc.canMove(candidateDirection) && slugTrail.contains(locationInDirection) == false && rubbleAtLocation < GameConstants.RUBBLE_OBSTRUCTION_THRESH)//move there then return
 						{
 							rc.setIndicatorString(0, "Trying to move");
 							rc.move(candidateDirection);

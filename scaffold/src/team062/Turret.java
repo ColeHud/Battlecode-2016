@@ -7,6 +7,7 @@ import java.util.*;
  * 
  */
 
+
 //move constants and all that inside or outside
 
 public class Turret 
@@ -18,7 +19,11 @@ public class Turret
 			Direction.SOUTH, Direction.SOUTH_WEST, Direction.WEST, Direction.NORTH_WEST};
 	public static int numDirections = directions.length;
 	public static double tooMuchRubble = 50; //how much rubble there has to be so that the soldiers don't try to clear it
+	public static int squaredMinStartDistFromArchon = 4;
 
+	public static int foeSignalRadiusSquared = 49; 
+	public static double probSignal = 0.1;	
+	
 	public static void run() throws GameActionException
 	{
 		rc = RobotPlayer.rc;
@@ -28,10 +33,11 @@ public class Turret
 		int maxTurnsToRunAway = 10; //how many turns TTMs should run away for before standing their ground
 		int turnsToRunAway = maxTurnsToRunAway; //doesn't need to start with a value, but compiler complained
 		MapLocation myLoc = rc.getLocation();
-		
+		Direction dirToMove = null;
+
 		//move a little away from archon, may want to leave even more space
 		RobotInfo makerArchon = null;
-		RobotInfo[] nearbyRobots = rc.senseNearbyRobots(4);
+		RobotInfo[] nearbyRobots = rc.senseNearbyRobots(squaredMinStartDistFromArchon);
 		for (RobotInfo robot : nearbyRobots)
 		{
 			if(robot.type == RobotType.ARCHON)
@@ -40,53 +46,56 @@ public class Turret
 				break;
 			}
 		}
-		Direction dirToMove = makerArchon.location.directionTo(myLoc); //away from Archon
-		int movesAwayFromArchon = 2;
-		rc.pack();
-		while(movesAwayFromArchon > 0)
+		if(makerArchon != null)
 		{
-			if(rc.isCoreReady())
+			dirToMove = makerArchon.location.directionTo(myLoc); //away from Archon
+			int movesAwayFromArchon = 2;
+			rc.pack();
+			while(movesAwayFromArchon > 0)
 			{
-				int timesRotated = 0;
-				boolean done = false;
-				boolean turnLeft = rand.nextBoolean(); //if true keep turning left, if false keep turning right
-				while((timesRotated < numDirections) && (! done))
+				if(rc.isCoreReady())
 				{
-					double rubble = rc.senseRubble(myLoc.add(dirToMove));
-					if(rubble > GameConstants.RUBBLE_OBSTRUCTION_THRESH)
+					int timesRotated = 0;
+					boolean done = false;
+					boolean turnLeft = rand.nextBoolean(); //if true keep turning left, if false keep turning right
+					while((timesRotated < numDirections) && (! done))
 					{
-						if(rubble >= tooMuchRubble) //try another direction
+						double rubble = rc.senseRubble(myLoc.add(dirToMove));
+						if(rubble > GameConstants.RUBBLE_OBSTRUCTION_THRESH)
 						{
-							dirToMove = turn(dirToMove, turnLeft);
-							timesRotated ++;
-						}
-						else //clear the rubble
-						{
-							rc.clearRubble(dirToMove);
-							done = true;
-						}
-					}
-					else
-					{
-						if(rc.canMove(dirToMove))
-						{
-							rc.move(dirToMove);
-							done = true;
-							myLoc = rc.getLocation();
+							if(rubble >= tooMuchRubble) //try another direction
+							{
+								dirToMove = turn(dirToMove, turnLeft);
+								timesRotated ++;
+							}
+							else //clear the rubble
+							{
+								rc.clearRubble(dirToMove);
+								done = true;
+							}
 						}
 						else
 						{
-							dirToMove = turn(dirToMove, turnLeft);
-							timesRotated ++;
+							if(rc.canMove(dirToMove))
+							{
+								rc.move(dirToMove);
+								done = true;
+								myLoc = rc.getLocation();
+							}
+							else
+							{
+								dirToMove = turn(dirToMove, turnLeft);
+								timesRotated ++;
+							}
 						}
 					}
+					movesAwayFromArchon --;
 				}
-			movesAwayFromArchon --;
+				Clock.yield();
 			}
-			Clock.yield();
+			rc.unpack();
 		}
-		rc.unpack();
-		
+
 		while(true)
 		{	
 			if(isPacked)
@@ -161,7 +170,7 @@ public class Turret
 			}
 			else
 			{
-				//attack any foes sending messages if you can?
+				//attack any foes sending messages if you can
 				//should save locs of all foes? May get outdated fast
 				if(rc.isWeaponReady())
 				{
@@ -182,11 +191,33 @@ public class Turret
 				}
 				//maybe some different flow here?
 				//otherwise get foes in your attackRange
-				RobotInfo[] foes = rc.senseHostileRobots(rc.getLocation(), RobotPlayer.myType.attackRadiusSquared);
+				RobotInfo[] foes = rc.senseHostileRobots(myLoc, RobotPlayer.myType.attackRadiusSquared);
+				
+				/* Code for minHealth way
+				double lowestHealth = 100000;
+				RobotInfo weakestFoe = null;
+				for(RobotInfo foe : foes)
+				{
+					if(foe.health < lowestHealth)
+					{
+						weakestFoe = foe;
+						lowestHealth = foe.health;
+					}
+				}
+				if(foes.length > 0 && weakestFoe != null)
+				{
+					myLoc = rc.getLocation();
+					MapLocation foeLoc = weakestFoe.location;
+				*/
+				
 				if(foes.length > 0)
 				{
 					myLoc = rc.getLocation();
 					MapLocation foeLoc = foes[0].location;
+					if(Math.random() < probSignal)
+					{
+						rc.broadcastSignal(foeSignalRadiusSquared);
+					}
 					int meToFoe = myLoc.distanceSquaredTo(foeLoc);
 					if(meToFoe >= GameConstants.TURRET_MINIMUM_RANGE)
 					{

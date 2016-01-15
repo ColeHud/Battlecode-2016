@@ -5,15 +5,15 @@ import java.util.*;
 public class Utility 
 {
 	//message ints
-	public static final int ZOMBIE_DEN_CODE = 84031;
-	public static final int ENEMY_ARCHON_CODE = 42650;
+	public static final int ZOMBIE_DEN_CODE = 84031; //not used
+	public static final int ENEMY_ARCHON_CODE = 42650; //not used
 	public static final int PARTS_CODE = 94572;
 	public static final int SOLDIER_HELP_CODE = 97525;
 	
-	public static final double PERCENTAGE_TURRETS = .2;
-	public static final double PERCENTAGE_SOLDIERS = .8;
+	public static final double PERCENTAGE_TURRETS = 0;
+	public static final double PERCENTAGE_SOLDIERS = 0.97;
+	public static final double PERCENTAGE_SCOUTS = 1 - PERCENTAGE_TURRETS - PERCENTAGE_SOLDIERS;
 	public static final int MAX_FOES_TO_BUILD = 4;
-	public static final int NULL_LOC_COORD = 35497234;
 	
 	//get an arraylist of directions
 	public static ArrayList<Direction> arrayListOfDirections()

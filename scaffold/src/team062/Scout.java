@@ -9,7 +9,9 @@ public class Scout
 	public static RobotController rc;
 	public static MapLocation spawn;
 	public static int minPartsToGet = 10;
-
+	public static int foeSignalRadiusSquared = 100;
+	public static double probSignal = 0.1;
+	
 	public static void run() throws GameActionException
 	{
 		rc = RobotPlayer.rc;
@@ -81,8 +83,14 @@ public class Scout
 		RobotInfo[] foes = rc.senseHostileRobots(currentLocation, RobotType.SCOUT.sensorRadiusSquared);
 		int broadcastRange = currentLocation.distanceSquaredTo(spawn) * 2;
 		
-		for(RobotInfo foe : foes)
+		if(foes.length > 0 && Math.random() < probSignal)
 		{
+			rc.broadcastSignal(foeSignalRadiusSquared);
+		}
+		
+		/*//Not sure we should be too specific yet, not using any of these signals
+		for(RobotInfo foe : foes)
+		{			
 			if(foe.type == RobotType.ZOMBIEDEN)// Zombie den
 			{
 				rc.broadcastMessageSignal(Utility.ZOMBIE_DEN_CODE, Utility.ZOMBIE_DEN_CODE, broadcastRange);
@@ -92,6 +100,7 @@ public class Scout
 				rc.broadcastMessageSignal(Utility.ENEMY_ARCHON_CODE, Utility.ENEMY_ARCHON_CODE, broadcastRange);
 			}
 		}
+		*/
 		
 		//parts
 		if(rc.senseParts(currentLocation) >= minPartsToGet)
