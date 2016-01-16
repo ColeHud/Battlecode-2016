@@ -1,5 +1,5 @@
 package wintermute3learningFromSprint;
-import java.util.ArrayList;
+import java.util.*;
 
 import battlecode.common.*;
 
@@ -12,13 +12,40 @@ public class Turret
 	
 	//goal maplocation
 	public static MapLocation goal = null;
+	
+	public static Random rand;
 
 	public static void run() throws GameActionException
 	{
 		rc = RobotPlayer.rc;
+		rand = new Random(rc.getID());
 		while(true)
 		{
-			//read scout signal
+			//read scout signal for scout vision
+			Signal[] signals = rc.emptySignalQueue();
+			if(signals.length > 0)
+			{
+				for(Signal signal : signals)
+				{
+					int[] message = signal.getMessage();
+					if(message != null)
+					{
+						int x = message[0];
+						int y = message[1];
+						
+						boolean bothMessagesContainCoordinates = (x + "").contains(Utility.SCOUT_TURRET_VISION_PREFACE_CODE) && (y + "").contains(Utility.SCOUT_TURRET_VISION_PREFACE_CODE);
+						if(bothMessagesContainCoordinates)
+						{
+							MapLocation enemyLocation = new MapLocation (x, y);
+							if(rc.isCoreReady() && rc.isWeaponReady() && rc.canAttackLocation(enemyLocation))
+							{
+								rc.setIndicatorString(0, "Attacking a foe from signal");
+								rc.attackLocation(enemyLocation);
+							}
+						}
+					}
+				}
+			}
 			
 			//attack foes
 			RobotInfo[] foes = rc.senseHostileRobots(rc.getLocation(), RobotType.TURRET.attackRadiusSquared);
@@ -66,11 +93,14 @@ public class Turret
 			{
 				for(RobotInfo friend : friends)
 				{
-					if(rc.getLocation().distanceSquaredTo(friend.location) <= 1)
+					if(friend.type == RobotType.ARCHON || friend.type == RobotType.TURRET)
 					{
-						//try to move away
-						Direction directionAway = rc.getLocation().directionTo(friend.location).opposite();
-						goal = rc.getLocation().add(directionAway);
+						if((Math.abs(rc.getLocation().x - friend.location.x) == 1) && (Math.abs(rc.getLocation().y - friend.location.y) == 0))//if you're at the same y location and your x's are nearby
+						{
+							//try to move away
+							Direction directionAway = rc.getLocation().directionTo(friend.location).opposite();
+							goal = rc.getLocation().add(directionAway);
+						}
 					}
 				}
 			}
@@ -78,6 +108,24 @@ public class Turret
 			//move
 
 			Clock.yield();
+		}
+	}
+	
+	//move to open adjacent location
+	public static void moveToOpenAdjacentLocation() throws GameActionException
+	{
+		ArrayList<Direction> directions = Utility.arrayListOfDirections();
+		while(directions.size() > 0)
+		{
+			int index = rand.nextInt(directions.size());
+			if(rc.canMove(directions.get(index)) && rc.isCoreReady())
+			{
+				rc.move(directions.get(index));
+			}
+			else
+			{
+				directions.remove(index);
+			}
 		}
 	}
 

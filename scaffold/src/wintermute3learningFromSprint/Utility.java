@@ -11,6 +11,7 @@ public class Utility
 	//codes
 	public static final int STRATEGY_CODE = 77525;
 	public static final int ARCHON_IN_TROUBLE = 062666;
+	public static final String SCOUT_TURRET_VISION_PREFACE_CODE = "17";
 
 	//get an arraylist of directions
 	public static ArrayList<Direction> arrayListOfDirections()

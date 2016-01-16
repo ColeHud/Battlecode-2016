@@ -1,6 +1,7 @@
 package wintermute3learningFromSprint;
 import java.util.ArrayList;
 import battlecode.common.*;
+import java.util.*;
 
 public class Archon 
 {
@@ -15,6 +16,11 @@ public class Archon
 	public static MapLocation averageArchonLocation;
 	public static boolean madeItToAverageArchonLocation = false;
 	public static int[] zombieSpawnRounds;
+	
+	//build orders
+	public static RobotType[] turtleBuildOrder = {RobotType.GUARD, RobotType.TURRET, RobotType.SCOUT, RobotType.TURRET, RobotType.SOLDIER};
+	public static RobotType[] bigArmyBuildOrder = {RobotType.SOLDIER, RobotType.GUARD, RobotType.SOLDIER, RobotType.TURRET, RobotType.SCOUT};
+	public static int currentBuildNumber = 0;
 
 	public static void run() throws GameActionException
 	{
@@ -107,35 +113,13 @@ public class Archon
 		{
 			if(strategyNumber == 1)//turtle
 			{
-				double percent = Math.random();
-				if(percent <= .5)//build a turret
-				{
-					buildRobot(RobotType.TURRET);
-				}
-				else if(percent > .5 && percent <= .75)//guard
-				{
-					buildRobot(RobotType.GUARD);
-				}
-				else//soldier
-				{
-					buildRobot(RobotType.SOLDIER);
-				}
+				rc.setIndicatorString(0, ""+currentBuildNumber);
+				buildRobot(turtleBuildOrder[currentBuildNumber]);
 			}
 			else if(strategyNumber == 2)//big army
 			{
-				double percent = Math.random();
-				if(percent <= .5)//build a soldier
-				{
-					buildRobot(RobotType.SOLDIER);
-				}
-				else if(percent > .5 && percent <= .75)//guard
-				{
-					buildRobot(RobotType.GUARD);
-				}
-				else//turret
-				{
-					buildRobot(RobotType.TURRET);
-				}
+				rc.setIndicatorString(0, "Big Army");
+				buildRobot(bigArmyBuildOrder[currentBuildNumber]);
 			}
 		}
 	}
@@ -151,6 +135,11 @@ public class Archon
 				if(rc.canBuild(dir, type))
 				{
 					rc.build(dir, type);
+					currentBuildNumber++;//iterate the bot to build
+					if(currentBuildNumber >= turtleBuildOrder.length)
+					{
+						currentBuildNumber = 0;
+					}
 					return;
 				}
 			}
