@@ -15,11 +15,10 @@ public class Soldier
 		rc = RobotPlayer.rc;
 		while(true)
 		{
-
 			Clock.yield();
 		}
 	}
-
+	
 	//move to a location
 	public static void moveToLocation(MapLocation location) throws GameActionException
 	{

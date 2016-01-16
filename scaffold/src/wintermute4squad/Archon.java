@@ -11,14 +11,14 @@ public class Archon
 	//slug trail for pathing
 	public static ArrayList<MapLocation> slugTrail = new ArrayList<MapLocation>(20);
 	
-	//build orders
+	//build order
 	public static RobotType[] buildOrder = {RobotType.SCOUT, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER, 
 		RobotType.SOLDIER, RobotType.TURRET, RobotType.GUARD, RobotType.VIPER};
 	public static int currentBuildNumber = 0;
-	
 	public static int numberOfInitialArchons;
 	public static Random rand;
 	
+	//goals
 	public static MapLocation goal = null;
 	public static int roundsGoingAfterGoal = 0;
 	public static ArrayList<MapLocation> goalsToAvoid = new ArrayList<MapLocation>();
@@ -76,7 +76,6 @@ public class Archon
 				if(goal != null)
 				{
 					moveToLocation(goal);
-					roundsGoingAfterGoal++;
 				}
 				else
 				{
