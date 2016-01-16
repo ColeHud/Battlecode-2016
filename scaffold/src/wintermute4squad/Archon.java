@@ -20,6 +20,7 @@ public class Archon
 	
 	//goals
 	public static MapLocation goal = null;
+	public static boolean goalIsNeutralBot = false;
 	public static int roundsGoingAfterGoal = 0;
 	public static ArrayList<MapLocation> goalsToAvoid = new ArrayList<MapLocation>();
 	
@@ -32,6 +33,29 @@ public class Archon
 
 		while(true)
 		{
+			//GOAL COMPLETION
+			if(goal != null)
+			{
+				if(rc.getLocation().distanceSquaredTo(goal) == 1 && goalIsNeutralBot)
+				{
+					if(rc.isCoreReady())
+					{
+						rc.activate(goal);
+					}
+					goal = null;
+				}
+				
+				if(rc.getLocation().equals(goal))
+				{
+					goal = null;
+				}
+				else if(roundsGoingAfterGoal > 20)
+				{
+					goalsToAvoid.add(goal);
+					goal = null;
+				}
+			}
+			
 			//EVASION CODE
 			RobotInfo[] foes = rc.senseHostileRobots(rc.getLocation(), RobotType.ARCHON.sensorRadiusSquared);
 			int numberOfFoesNearAttackRadius = 0;
@@ -48,26 +72,17 @@ public class Archon
 					}
 				}
 			}
-			
-			//GOAL COMPLETION
-			if(goal != null)
+			else//if there are no enemies nearby, then try to move to the goal
 			{
-				if(rc.getLocation().equals(goal))
-				{
-					goal = null;
-				}
-				else if(roundsGoingAfterGoal > 20)
-				{
-					goalsToAvoid.add(goal);
-					goal = null;
-				}
+				
 			}
 			
 			//BUILDING CODE
 			double chancesOfBuilding = 1.0/(double)numberOfInitialArchons;
 			double random = rand.nextFloat();
-			if(random <= chancesOfBuilding)//you get to build! :)
+			if(random <= chancesOfBuilding && canBuildSomething())//you get to build! :)
 			{
+				rc.setIndicatorString(0, "Building");
 				buildStrategicRobot();
 				continue;
 			}
@@ -75,13 +90,27 @@ public class Archon
 			{
 				if(goal != null)
 				{
+					rc.setIndicatorString(0, "Moving");
 					moveToLocation(goal);
 				}
 				else
 				{
-					findNearbyPartsAndSetGoal();
+					rc.setIndicatorString(0, "Finding new parts or neutral bots");
+					//GO ACTIVATE NEUTRAL BOTS
+					RobotInfo[] neutralBots = rc.senseNearbyRobots(RobotType.ARCHON.sensorRadiusSquared, Team.NEUTRAL);
+					if(neutralBots.length > 0)
+					{
+						goal = neutralBots[0].location;
+						goalIsNeutralBot = true;
+					}
+					else
+					{
+						findNearbyPartsAndSetGoal();
+					}
 				}
 			}
+			
+			
 			
 
 			Clock.yield();
@@ -110,6 +139,7 @@ public class Archon
 			if(locationWithMostParts != null)
 			{
 				goal = locationWithMostParts;
+				goalIsNeutralBot = false;
 			}
 		}
 	}
@@ -191,6 +221,27 @@ public class Archon
 		}
 	}
 
+	//can build something
+	public static boolean canBuildSomething()
+	{
+		if(rc.isCoreReady() && rc.getTeamParts() > buildOrder[currentBuildNumber].partCost)
+		{
+			Direction[] directions = Direction.values();
+			for(Direction direction : directions)
+			{
+				if(rc.canBuild(direction, buildOrder[currentBuildNumber]))
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	
 	//move to a location
 	public static void moveToLocation(MapLocation location) throws GameActionException
 	{

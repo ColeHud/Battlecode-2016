@@ -12,6 +12,10 @@ public class Scout
 	public static ArrayList<MapLocation> slugTrail = new ArrayList<MapLocation>();
 	
 	public static MapLocation[] enemyArchonsInitialPosition;
+	
+	//scouting
+	public static MapLocation pivotLocation = null;
+	public static Direction directionToMove = null;
 
 	public static void run() throws GameActionException
 	{
@@ -20,12 +24,60 @@ public class Scout
 		
 		enemyArchonsInitialPosition = rc.getInitialArchonLocations(rc.getTeam().opponent());
 		
+		pivotLocation = rc.getLocation();
 		while(true)
 		{
+			//initial case
+			if(directionToMove == null)
+			{
+				//choose a random direction to move in
+				Direction[] possibleDirections = Direction.values();
+				directionToMove = possibleDirections[rand.nextInt(possibleDirections.length)];
+			}
+			
+			//every other case
+			if(rc.canMove(directionToMove))
+			{
+				//if there are foes nearby, choose another direction
+				RobotInfo[] foes = rc.senseHostileRobots(rc.getLocation(), RobotType.SCOUT.sensorRadiusSquared);
+				if(foes.length > 0)
+				{
+					//set the direction to move to the enemy so you move away from it
+					directionToMove = rc.getLocation().directionTo(foes[0].location);
+					getNewDirection();
+					if(rc.canMove(directionToMove) && rc.isCoreReady())
+					{
+						rc.move(directionToMove);
+					}
+				}
+				else if(rc.isCoreReady())//if there aren't enemies nearby, move int the current direction
+				{
+					rc.move(directionToMove);
+				}
+			}
+			else
+			{
+				//if you can't move in the current direction, find a new one
+				getNewDirection();
+			}
 			
 
 			Clock.yield();
 		}
-	}
+	}	
+	
+	//get a new direction to move
+	public static void getNewDirection()
+	{
+		pivotLocation = rc.getLocation();
 		
+		//get a new direction to go
+		ArrayList<Direction> possibleDirections = Utility.arrayListOfDirections();
+		possibleDirections.remove(directionToMove);
+		possibleDirections.remove(directionToMove.rotateRight());
+		possibleDirections.remove(directionToMove.rotateLeft());
+		possibleDirections.remove(directionToMove.opposite());
+		
+		directionToMove = possibleDirections.get(rand.nextInt(possibleDirections.size()));
+	}
 }
