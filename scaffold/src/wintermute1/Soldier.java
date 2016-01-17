@@ -18,18 +18,17 @@ public class Soldier
 	public static Direction[] directions = {Direction.NORTH, Direction.NORTH_EAST, Direction.EAST, Direction.SOUTH_EAST,
 			Direction.SOUTH, Direction.SOUTH_WEST, Direction.WEST, Direction.NORTH_WEST};
 	public static int numDirections = directions.length;
-	
+
 	public static double probMove = 0.2; //how often to move if can, maybe make lower for protectors?
-	
+
 	public static int maxMomentum = 0; //how many turns to keep going in a direction, if no guidance to change it
 	//no momentum right now
-	
+
 	public static int closeEnoughSquared = 4; //how close you have to get to a goalLoc (squared)
-	public static int startStepsLeft = 50; //max number of steps to take to get to a goalLoc (don't want to try forever)
-	
+
 	//doesn't seem to work yet?
 	public static double probProtector = 0; //might change based on GameConstants.NUMBER_OF_ARCHONS_MAX
-	
+
 	public static double probIgnoreRubbleIfNotTooMuch = 0.2;
 	/* how much rubble there has to be so that the
 	 * soldiers don't try to clear it, increases the more a
@@ -38,31 +37,31 @@ public class Soldier
 
 	public static int foeSignalRadiusSquared = 1000; //play around with this some
 	public static double probSignal = 0.1;
-	
+
 	public static void run() throws GameActionException
 	{
 		rc = RobotPlayer.rc;
 		Team myTeam = rc.getTeam();
 		rand = new Random(rc.getID()); //ever used?
-		
+
 		boolean isProtector = Math.random() < probProtector;
 
 		double tooMuchRubble = startTooMuchRubble; //how much rubble there has to be so that this soldier won't try to clear it
 		double rubbleToleranceGrowthFactor = 2;
-		
+
 		MapLocation goalLoc = null;
 		Direction dirToMove = Direction.NONE;
-		int stepsLeft = startStepsLeft;
+		int stepsLeft = 50;
 		int momentum = maxMomentum;
 		boolean offCourse = false; //whether the soldier turned in getting to a location
 		//means will have to recompute the direction to the goal
-		
+
 		//in code depends on distance from myLoc to goalLoc
 		boolean foesMaybeNearby = true; //used to restart while loop
 		MapLocation myLoc = rc.getLocation();
 		int makerArchonID = 0;
 		RobotInfo makerArchon = null;
-		
+
 		//move a little away from archon
 		int movesAwayFromArchon = 2;
 		RobotInfo[] nearbyRobots = rc.senseNearbyRobots(movesAwayFromArchon*movesAwayFromArchon);
@@ -89,7 +88,7 @@ public class Soldier
 					while((timesRotated < numDirections) && (! done))
 					{
 						double rubble = rc.senseRubble(myLoc.add(dirToMove));
-						if(rubble > GameConstants.RUBBLE_OBSTRUCTION_THRESH)
+						if(rubble >= GameConstants.RUBBLE_OBSTRUCTION_THRESH)
 						{
 							if(rubble >= tooMuchRubble && Math.random() < probIgnoreRubbleIfNotTooMuch) //try another direction
 							{
@@ -136,6 +135,7 @@ public class Soldier
 				{
 					makerArchon = rc.senseRobot(makerArchonID);
 					goalLoc = makerArchon.location;
+					stepsLeft = myLoc.distanceSquaredTo(goalLoc);
 				}
 				catch (Exception GameActionException)
 				{
@@ -150,21 +150,64 @@ public class Soldier
 				if(rc.isWeaponReady()) //maybe different flow here
 				{
 					RobotInfo[] foes = rc.senseHostileRobots(myLoc, RobotPlayer.myType.attackRadiusSquared);
-					
-					double lowestHealth = 0;
-					RobotInfo weakestFoe = null;
-					for(RobotInfo foe : foes)
+
+					if(foes.length > 0)
 					{
-						if(lowestHealth == 0 || foe.health < lowestHealth)
+						RobotInfo weakestFoe = null;
+						double lowestHealth = 0;
+						for(RobotInfo foe : foes)
 						{
-							weakestFoe = foe;
-							lowestHealth = foe.health;
+							if(foe.type == RobotType.ARCHON) //highest priority
+							{
+								weakestFoe = foe;
+								break;
+							}
+							if(lowestHealth == 0 || foe.health < lowestHealth)
+							{
+								weakestFoe = foe;
+								lowestHealth = foe.health;
+							}
 						}
-					}
-					
-					if(foes.length > 0 && weakestFoe != null)
-					{
-						rc.attackLocation(weakestFoe.location);
+						/*if(weakestFoe.type == RobotType.TURRET && myLoc.distanceSquaredTo(weakestFoe.location) > GameConstants.TURRET_MINIMUM_RANGE) //move closer
+						 *{
+						 *	//move towards it
+						 *	dirToMove = myLoc.directionTo(weakestFoe.location);
+						 *	simpleTryMove(dirToMove);
+						 *	if(rc.isWeaponReady()); //may not need this, will never be ready?
+						 *	{
+						 *		rc.attackLocation(weakestFoe.location);
+						 *	}
+						 *}
+						 */
+						if(weakestFoe.type == RobotType.BIGZOMBIE && myLoc.distanceSquaredTo(weakestFoe.location) <= RobotType.BIGZOMBIE.attackRadiusSquared)
+						{
+							//move away from it
+							dirToMove = weakestFoe.location.directionTo(myLoc);
+							simpleTryMove(dirToMove);
+							if(rc.isWeaponReady())
+							{
+								try
+								{
+									rc.attackLocation(rc.senseRobot(weakestFoe.ID).location);
+								}
+								catch (Exception GameActionException)
+								{
+									//nothing
+								}
+
+							}
+						}
+						else
+						{
+							if(rc.canAttackLocation(weakestFoe.location))
+							{
+								rc.attackLocation(weakestFoe.location);
+							}
+							else
+							{
+								System.out.println("Wasn't close enough"); //weird, why does this happen?
+							}
+						}
 						if(Math.random() < probSignal)
 						{
 							rc.broadcastSignal(foeSignalRadiusSquared);
@@ -173,6 +216,18 @@ public class Soldier
 					else //no foes nearby
 					{
 						foesMaybeNearby = false;
+						//maybe only do this sometimes?
+						RobotInfo[] foesYouCanOnlySee = rc.senseHostileRobots(myLoc, RobotPlayer.myType.sensorRadiusSquared);
+						//could do min thing here too, but $$$?
+						if(foesYouCanOnlySee.length > 0)
+						{
+							goalLoc = foesYouCanOnlySee[0].location;
+							//may want to not signal, haven't really seen anything
+							if(Math.random() < probSignal)
+							{
+								rc.broadcastSignal(foeSignalRadiusSquared);
+							}
+						}
 						continue;
 					}
 				}
@@ -181,21 +236,45 @@ public class Soldier
 			{
 				if(goalLoc == null)
 				{
+					/* //old way of doing it, just gets first acceptable signal
 					boolean gotNewGoalLoc = false;
 					Signal[] signals = rc.emptySignalQueue();
 					for(Signal signal : signals)
 					{
-						if((signal.getMessage() == null) && (signal.getTeam() == myTeam))
+						//can check && (signal.getTeam() == myTeam), this way explores all messages
+						if(signal.getMessage() == null || signal.getTeam() != myTeam)
 						{
 							goalLoc = signal.getLocation();
 							stepsLeft = myLoc.distanceSquaredTo(goalLoc); //not sure what would be better
 							dirToMove =  myLoc.directionTo(goalLoc);
 							gotNewGoalLoc = true;
-							break;
 						}
 					}
 					if(gotNewGoalLoc)
 					{
+						continue;
+					}
+					 */
+
+					//get closest signal
+					Signal[] signals = rc.emptySignalQueue();
+					MapLocation closestSignalLoc = null;
+					double smallestCloseness = 0;
+					for(Signal signal : signals)
+					{
+						MapLocation signalLoc = signal.getLocation();
+						double signalCloseness = myLoc.distanceSquaredTo(signalLoc);
+						if((smallestCloseness == 0 || signalCloseness < smallestCloseness) && (signal.getMessage() == null || signal.getTeam() != myTeam))
+						{
+							closestSignalLoc = signalLoc;
+							smallestCloseness = signalCloseness;
+						}
+					}
+					if(closestSignalLoc != null)
+					{
+						goalLoc = closestSignalLoc;
+						dirToMove =  myLoc.directionTo(goalLoc);
+						stepsLeft = (int) smallestCloseness; //not sure what would be better
 						continue;
 					}
 					else //move randomly
@@ -259,7 +338,6 @@ public class Soldier
 						{
 							goalLoc = null;
 							dirToMove = Direction.NONE;
-							stepsLeft = startStepsLeft;
 							continue; //didn't use that much bytecode to get here, still might be a mistake
 						}
 						else
@@ -315,6 +393,14 @@ public class Soldier
 				foesMaybeNearby = true;
 			}
 			Clock.yield(); //end after if statement
+		}
+	}
+
+	public static void simpleTryMove(Direction dirToMove) throws GameActionException
+	{
+		if(rc.isCoreReady() && rc.canMove(dirToMove))
+		{
+			rc.move(dirToMove);
 		}
 	}
 
