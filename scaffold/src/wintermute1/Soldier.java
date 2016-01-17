@@ -4,12 +4,15 @@ import battlecode.common.*;
 import java.util.*;
 
 /* Rough overview of what the soldiers will do: 
- * 
+ * If enemies in attack range, attack, unless BIGZOMBIE (then kite)
+ * 		Signal if you attack so others can come help
+ * Otherwise look for enemies and move towards any you see
+ * Otherwise continue along a goal location you got in a message
+ * 		If you're close enough or have spent a while on it, reset goal location
+ * Otherwise (if you don't have a goal location) check your messages for one
+ * Otherwise just move around randomly
+ * (Yes there's other stuff and it's not all pretty)
  */
-
-//has momentum but can set to 0
-//don't constantly try to give archons space, but do move away from them when spawned
-//could make them clump or swarm more?
 
 public class Soldier
 {
@@ -22,12 +25,11 @@ public class Soldier
 	public static double probMove = 0.2; //how often to move if can, maybe make lower for protectors?
 
 	public static int maxMomentum = 0; //how many turns to keep going in a direction, if no guidance to change it
-	//no momentum right now
+	//0 because turned off right now
 
 	public static int closeEnoughSquared = 4; //how close you have to get to a goalLoc (squared)
 
-	//doesn't seem to work yet?
-	public static double probProtector = 0; //might change based on GameConstants.NUMBER_OF_ARCHONS_MAX
+	public static double probProtector = 0; //might make change based on GameConstants.NUMBER_OF_ARCHONS_MAX
 
 	public static double probIgnoreRubbleIfNotTooMuch = 0.2;
 	/* how much rubble there has to be so that the
@@ -42,27 +44,36 @@ public class Soldier
 	{
 		rc = RobotPlayer.rc;
 		Team myTeam = rc.getTeam();
-		rand = new Random(rc.getID()); //ever used?
+		rand = new Random(rc.getID()); //make sure this works
 
 		boolean isProtector = Math.random() < probProtector;
 
-		double tooMuchRubble = startTooMuchRubble; //how much rubble there has to be so that this soldier won't try to clear it
-		double rubbleToleranceGrowthFactor = 2;
-
+		//how much rubble there has to be so that this soldier won't try to clear it
+		double tooMuchRubble = startTooMuchRubble;
+		
+		//every time you decide to go around rubble, multiply rubble tolerance by this
+		//so if there's really lots and lots of rubble, eventually you'll go through it
+		double rubbleToleranceGrowthFactor = 2; 
+		
 		MapLocation goalLoc = null;
 		Direction dirToMove = Direction.NONE;
-		int stepsLeft = 50;
-		int momentum = maxMomentum;
-		boolean offCourse = false; //whether the soldier turned in getting to a location
+		//how many turns to spend trying to get to a goal location
+		//below value is reasonable but never used, depends on initial distance to goal
+		int turnsLeft = 50;
+		int momentum = maxMomentum; //start off momentum at max
+		
+		//whether the soldier turned some in getting to a location
 		//means will have to recompute the direction to the goal
-
-		//in code depends on distance from myLoc to goalLoc
-		boolean foesMaybeNearby = true; //used to restart while loop
+		boolean offCourse = false;
+		
+		boolean anyFoesToAttack = true; //if false, then move around and do other non-killing stuff
 		MapLocation myLoc = rc.getLocation();
 		int makerArchonID = 0;
 		RobotInfo makerArchon = null;
 
-		//move a little away from archon
+		//ENTERING THE ACTUAL CODE
+		
+		//move a little away from your maker archon, to give it space
 		int movesAwayFromArchon = 2;
 		RobotInfo[] nearbyRobots = rc.senseNearbyRobots(movesAwayFromArchon*movesAwayFromArchon);
 		for (RobotInfo robot : nearbyRobots)
@@ -85,6 +96,7 @@ public class Soldier
 					int timesRotated = 0;
 					boolean done = false;
 					boolean turnLeft = rand.nextBoolean(); //if true keep turning left, if false keep turning right
+					//start in a direction, choose a random way to turn, turn that way until you've tried all the directions
 					while((timesRotated < numDirections) && (! done))
 					{
 						double rubble = rc.senseRubble(myLoc.add(dirToMove));
@@ -129,100 +141,104 @@ public class Soldier
 
 		while(true)
 		{
+			//protectors mostly aren't used, at least now
 			if(isProtector)
 			{
 				try
 				{
 					makerArchon = rc.senseRobot(makerArchonID);
 					goalLoc = makerArchon.location;
-					stepsLeft = myLoc.distanceSquaredTo(goalLoc);
+					turnsLeft = myLoc.distanceSquaredTo(goalLoc);
 				}
 				catch (Exception GameActionException)
 				{
 					//nothing
 				}
 			}
-
-			//try to attack, if successful then finish turn
-			//does not prioritize who to attack for now
-			if(foesMaybeNearby)
+			
+			//try to attack weakest foe, if successful then finish turn
+			if(anyFoesToAttack)
 			{
-				if(rc.isWeaponReady()) //maybe different flow here
+				if(rc.isWeaponReady()) //maybe different flow here?
 				{
 					RobotInfo[] foes = rc.senseHostileRobots(myLoc, RobotPlayer.myType.attackRadiusSquared);
 
 					if(foes.length > 0)
 					{
-						RobotInfo weakestFoe = null;
+						RobotInfo targetFoe = null;
 						double lowestHealth = 0;
 						for(RobotInfo foe : foes)
 						{
 							if(foe.type == RobotType.ARCHON) //highest priority
 							{
-								weakestFoe = foe;
+								targetFoe = foe;
+								//should send out a huge signal?
 								break;
 							}
 							if(lowestHealth == 0 || foe.health < lowestHealth)
 							{
-								weakestFoe = foe;
+								targetFoe = foe;
 								lowestHealth = foe.health;
 							}
 						}
-						/*if(weakestFoe.type == RobotType.TURRET && myLoc.distanceSquaredTo(weakestFoe.location) > GameConstants.TURRET_MINIMUM_RANGE) //move closer
-						 *{
-						 *	//move towards it
-						 *	dirToMove = myLoc.directionTo(weakestFoe.location);
-						 *	simpleTryMove(dirToMove);
-						 *	if(rc.isWeaponReady()); //may not need this, will never be ready?
-						 *	{
-						 *		rc.attackLocation(weakestFoe.location);
-						 *	}
-						 *}
+						
+						/*//code to go towards turrets, as Cole said, really horrible unless with lots of friends
+						  //turrets just destroy soldiers, soldiers never get a chance to fire
+						 if(weakestFoe.type == RobotType.TURRET && myLoc.distanceSquaredTo(weakestFoe.location) > GameConstants.TURRET_MINIMUM_RANGE) //move closer
+						 {
+						 	//move towards it
+						 	dirToMove = myLoc.directionTo(weakestFoe.location);
+						 	simpleTryMove(dirToMove);
+						 	if(rc.isWeaponReady()); //may not need this, will never be ready?
+						 	{
+						 		rc.attackLocation(weakestFoe.location);
+						 	}
+						 }
 						 */
-						if(weakestFoe.type == RobotType.BIGZOMBIE && myLoc.distanceSquaredTo(weakestFoe.location) <= RobotType.BIGZOMBIE.attackRadiusSquared)
+						
+						if(targetFoe.type == RobotType.BIGZOMBIE && myLoc.distanceSquaredTo(targetFoe.location) <= RobotType.BIGZOMBIE.attackRadiusSquared)
 						{
 							//move away from it
-							dirToMove = weakestFoe.location.directionTo(myLoc);
+							dirToMove = targetFoe.location.directionTo(myLoc);
 							simpleTryMove(dirToMove);
 							if(rc.isWeaponReady())
 							{
 								try
 								{
-									rc.attackLocation(rc.senseRobot(weakestFoe.ID).location);
+									rc.attackLocation(rc.senseRobot(targetFoe.ID).location);
 								}
 								catch (Exception GameActionException)
 								{
 									//nothing
 								}
-
 							}
 						}
 						else
 						{
-							if(rc.canAttackLocation(weakestFoe.location))
+							if(rc.canAttackLocation(targetFoe.location))
 							{
-								rc.attackLocation(weakestFoe.location);
+								rc.attackLocation(targetFoe.location);
 							}
 							else
 							{
 								System.out.println("Wasn't close enough"); //weird, why does this happen?
 							}
 						}
+						
 						if(Math.random() < probSignal)
 						{
 							rc.broadcastSignal(foeSignalRadiusSquared);
 						}
 					}
-					else //no foes nearby
+					else //no foes in attack range
 					{
-						foesMaybeNearby = false;
-						//maybe only do this sometimes?
+						anyFoesToAttack = false;
 						RobotInfo[] foesYouCanOnlySee = rc.senseHostileRobots(myLoc, RobotPlayer.myType.sensorRadiusSquared);
 						//could do min thing here too, but $$$?
 						if(foesYouCanOnlySee.length > 0)
 						{
 							goalLoc = foesYouCanOnlySee[0].location;
-							//may want to not signal, haven't really seen anything
+
 							if(Math.random() < probSignal)
 							{
 								rc.broadcastSignal(foeSignalRadiusSquared);
@@ -236,27 +252,7 @@ public class Soldier
 			{
 				if(goalLoc == null)
 				{
-					/* //old way of doing it, just gets first acceptable signal
-					boolean gotNewGoalLoc = false;
-					Signal[] signals = rc.emptySignalQueue();
-					for(Signal signal : signals)
-					{
-						//can check && (signal.getTeam() == myTeam), this way explores all messages
-						if(signal.getMessage() == null || signal.getTeam() != myTeam)
-						{
-							goalLoc = signal.getLocation();
-							stepsLeft = myLoc.distanceSquaredTo(goalLoc); //not sure what would be better
-							dirToMove =  myLoc.directionTo(goalLoc);
-							gotNewGoalLoc = true;
-						}
-					}
-					if(gotNewGoalLoc)
-					{
-						continue;
-					}
-					 */
-
-					//get closest signal
+					//follow signal closest to you
 					Signal[] signals = rc.emptySignalQueue();
 					MapLocation closestSignalLoc = null;
 					double smallestCloseness = 0;
@@ -264,6 +260,7 @@ public class Soldier
 					{
 						MapLocation signalLoc = signal.getLocation();
 						double signalCloseness = myLoc.distanceSquaredTo(signalLoc);
+						//follow enemy signals to kill messengers or your own team's signals to group up
 						if((smallestCloseness == 0 || signalCloseness < smallestCloseness) && (signal.getMessage() == null || signal.getTeam() != myTeam))
 						{
 							closestSignalLoc = signalLoc;
@@ -274,11 +271,33 @@ public class Soldier
 					{
 						goalLoc = closestSignalLoc;
 						dirToMove =  myLoc.directionTo(goalLoc);
-						stepsLeft = (int) smallestCloseness; //not sure what would be better
+						turnsLeft = (int) smallestCloseness; //not sure what would be better
 						continue;
 					}
+					
+					/* //old way of doing it, just gets first acceptable signal
+					boolean gotNewGoalLoc = false;
+					Signal[] signals = rc.emptySignalQueue();
+					for(Signal signal : signals)
+					{
+						//can check && (signal.getTeam() == myTeam), this way explores all messages
+						if(signal.getMessage() == null || signal.getTeam() != myTeam)
+						{
+							goalLoc = signal.getLocation();
+							turnsLeft = myLoc.distanceSquaredTo(goalLoc); //not sure what would be better
+							dirToMove =  myLoc.directionTo(goalLoc);
+							gotNewGoalLoc = true;
+						}
+					}
+					if(gotNewGoalLoc)
+					{
+						continue;
+					}
+					 */
+					
 					else //move randomly
-						//this code is copied some below
+						 //this code is copied some below
+						 //maybe change to move towards friends
 					{
 						if(rc.isCoreReady() && Math.random() < probMove)
 						{
@@ -316,7 +335,7 @@ public class Soldier
 									if(rc.canMove(dirToMove))
 									{
 										rc.move(dirToMove);
-										stepsLeft --;
+										turnsLeft --;
 										done = true;
 										myLoc = rc.getLocation();
 									}
@@ -334,7 +353,7 @@ public class Soldier
 				{
 					if(rc.isCoreReady())
 					{
-						if((myLoc.distanceSquaredTo(goalLoc) <= closeEnoughSquared) || (stepsLeft <= 0)) //done
+						if((myLoc.distanceSquaredTo(goalLoc) <= closeEnoughSquared) || (turnsLeft <= 0)) //done
 						{
 							goalLoc = null;
 							dirToMove = Direction.NONE;
@@ -362,7 +381,7 @@ public class Soldier
 										tooMuchRubble *= rubbleToleranceGrowthFactor;
 										dirToMove = turn(dirToMove, turnLeft);
 										timesRotated ++;
-										offCourse = true;
+										offCourse = true; //means you have to recompute direction to goalLoc
 									}
 									else //clear the rubble
 									{
@@ -375,7 +394,7 @@ public class Soldier
 									if(rc.canMove(dirToMove))
 									{
 										rc.move(dirToMove);
-										stepsLeft --;
+										turnsLeft --;
 										done = true;
 										myLoc = rc.getLocation();
 									}
@@ -390,7 +409,7 @@ public class Soldier
 						}
 					}
 				}
-				foesMaybeNearby = true;
+				anyFoesToAttack = true;
 			}
 			Clock.yield(); //end after if statement
 		}
