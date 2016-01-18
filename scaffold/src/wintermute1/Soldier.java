@@ -4,8 +4,9 @@ import battlecode.common.*;
 import java.util.*;
 
 /* Rough overview of what the soldiers will do: 
- * If enemies in attack range, attack, unless BIGZOMBIE (then kite)
+ * If enemies just in attack range, attack
  * 		Signal if you attack so others can come help
+ * Otherwise kite (if enemies can hurt you)
  * Otherwise look for enemies and move towards any you see
  * Otherwise continue along a goal location you got in a message
  * 		If you're close enough or have spent a while on it, reset goal location
