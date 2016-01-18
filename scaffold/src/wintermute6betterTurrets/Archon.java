@@ -59,8 +59,11 @@ public class Archon
 			
 			//EVASION CODE
 			RobotInfo[] foes = rc.senseHostileRobots(rc.getLocation(), RobotType.ARCHON.sensorRadiusSquared);
+			RobotInfo[] friends = rc.senseNearbyRobots(RobotType.ARCHON.sensorRadiusSquared, rc.getTeam());
+			
+			//evade if there are at least 6 more foes than friends
 			int numberOfFoesNearAttackRadius = 0;
-			if(foes.length > 0)
+			if(foes.length > friends.length + 6)
 			{
 				for(RobotInfo foe : foes)
 				{
@@ -73,40 +76,38 @@ public class Archon
 					}
 				}
 			}
-			else//if there are no enemies nearby, then try to move to the goal
+			else//if there are no enemies nearby, then try to move to the goal or build
 			{
-				
-			}
-			
-			//BUILDING CODE
-			double chancesOfBuilding = 1.0/(double)numberOfInitialArchons;
-			double random = rand.nextFloat();
-			if(random <= chancesOfBuilding && canBuildSomething())//you get to build! :)
-			{
-				rc.setIndicatorString(0, "Building");
-				buildStrategicRobot();
-				continue;
-			}
-			else//if you can't build anything, go look for some parts/move to the current goal
-			{
-				if(goal != null)
+				//BUILDING CODE
+				double chancesOfBuilding = 1.0/(double)numberOfInitialArchons;
+				double random = rand.nextFloat();
+				if(random <= chancesOfBuilding && canBuildSomething())//you get to build! :)
 				{
-					rc.setIndicatorString(0, "Moving");
-					moveToLocation(goal);
+					rc.setIndicatorString(0, "Building");
+					buildStrategicRobot();
+					continue;
 				}
-				else
+				else//if you can't build anything, go look for some parts/move to the current goal
 				{
-					rc.setIndicatorString(0, "Finding new parts or neutral bots");
-					//GO ACTIVATE NEUTRAL BOTS
-					RobotInfo[] neutralBots = rc.senseNearbyRobots(RobotType.ARCHON.sensorRadiusSquared, Team.NEUTRAL);
-					if(neutralBots.length > 0)
+					if(goal != null)
 					{
-						goal = neutralBots[0].location;
-						goalIsNeutralBot = true;
+						rc.setIndicatorString(0, "Moving");
+						moveToLocation(goal);
 					}
 					else
 					{
-						findNearbyPartsAndSetGoal();
+						rc.setIndicatorString(0, "Finding new parts or neutral bots");
+						//GO ACTIVATE NEUTRAL BOTS
+						RobotInfo[] neutralBots = rc.senseNearbyRobots(RobotType.ARCHON.sensorRadiusSquared, Team.NEUTRAL);
+						if(neutralBots.length > 0)
+						{
+							goal = neutralBots[0].location;
+							goalIsNeutralBot = true;
+						}
+						else
+						{
+							findNearbyPartsAndSetGoal();
+						}
 					}
 				}
 			}
