@@ -4,14 +4,15 @@ import battlecode.common.*;
 import java.util.*;
 
 /* Rough overview of what the soldiers will do: 
- * 
+ * If enemies in attack range, attack, unless BIGZOMBIE (then kite)
+ * 		Signal if you attack so others can come help
+ * Otherwise look for enemies and move towards any you see
+ * Otherwise continue along a goal location you got in a message
+ * 		If you're close enough or have spent a while on it, reset goal location
+ * Otherwise (if you don't have a goal location) check your messages for one
+ * Otherwise just move around randomly
+ * (Yes there's other stuff and it's not all pretty)
  */
-
-//has momentum but can set to 0
-//don't constantly try to give archons space, but do move away from them when spawned
-//could make them clump or swarm more?
-
-//move constants and all that inside or outside
 
 public class Soldier
 {
@@ -20,49 +21,61 @@ public class Soldier
 	public static Direction[] directions = {Direction.NORTH, Direction.NORTH_EAST, Direction.EAST, Direction.SOUTH_EAST,
 			Direction.SOUTH, Direction.SOUTH_WEST, Direction.WEST, Direction.NORTH_WEST};
 	public static int numDirections = directions.length;
-	
-	public static double probMove = 0.2; //how often to move if can, maybe make lower for protectors?
-	
+
+	public static double probMove = 0.1; //how often to move if can, maybe make lower for protectors?
+
 	public static int maxMomentum = 0; //how many turns to keep going in a direction, if no guidance to change it
-	public static int momentum = maxMomentum;
-	
-	public static int closeEnoughSquared = 1; //how close you have to get to a goalLoc (squared)
-	public static int stepsLeft = 25; //max number of steps to take to get to a goalLoc (don't want to try forever)
-	
-	public static double probProtector = 0; //might change based on GameConstants.NUMBER_OF_ARCHONS_MAX
-	
+	//0 because turned off right now
+
+	public static int closeEnoughSquared = 4; //how close you have to get to a goalLoc (squared)
+
+	public static double probProtector = 0; //might make change based on GameConstants.NUMBER_OF_ARCHONS_MAX
+
 	public static double probIgnoreRubbleIfNotTooMuch = 0.2;
-	//just going for, clear the rubble!
-	public static double startTooMuchRubble = 3000; //how much rubble there has to be so that the soldiers don't try to clear it
-	
-	public static int foeSignalRadiusSquared = 100; 
-	public static double probSignal = 0.1;	
-	
-	//continues might be a bad idea
+	/* how much rubble there has to be so that the
+	 * soldiers don't try to clear it, increases the more a
+	 * specific soldier sees lots of rubble */
+	public static double startTooMuchRubble = 500;
+
+	public static int foeSignalRadiusSquared = 1000; //play around with this some
+	public static double probSignal = 0.15;
+
 	public static void run() throws GameActionException
 	{
 		rc = RobotPlayer.rc;
 		Team myTeam = rc.getTeam();
-		rand = new Random(rc.getID()); //ever used?
+		rand = new Random(rc.getID()); //make sure this works
 
-		//make some (20%) into protectors
 		boolean isProtector = Math.random() < probProtector;
 
-		double tooMuchRubble = startTooMuchRubble; //how much rubble there has to be so that this soldier won't try to clear it
+		//how much rubble there has to be so that this soldier won't try to clear it
+		double tooMuchRubble = startTooMuchRubble;
+		
+		//every time you decide to go around rubble, multiply rubble tolerance by this
+		//so if there's really lots and lots of rubble, eventually you'll go through it
+		double rubbleToleranceGrowthFactor = 2; 
 		
 		MapLocation goalLoc = null;
 		Direction dirToMove = Direction.NONE;
-		boolean offCourse = false; //whether the soldier turned in getting to a location
+		//how many turns to spend trying to get to a goal location
+		//below value is reasonable but never used, depends on initial distance to goal
+		int turnsLeft = 50;
+		int momentum = maxMomentum; //start off momentum at max
+		
+		//whether the soldier turned some in getting to a location
 		//means will have to recompute the direction to the goal
+		boolean offCourse = false;
 		
-		//in code depends on distance from myLoc to goalLoc
-		boolean foesMaybeNearby = true; //used to restart while loop
+		boolean anyFoesToAttack = true; //if false, then move around and do other non-killing stuff
 		MapLocation myLoc = rc.getLocation();
-		int makerArchonID = 0; //doesn't seem to work?
+		int makerArchonID = 0;
 		RobotInfo makerArchon = null;
+
+		//ENTERING THE ACTUAL CODE
 		
-		//move a little away from archon
-		RobotInfo[] nearbyRobots = rc.senseNearbyRobots(4);
+		//move a little away from your maker archon, to give it space
+		int movesAwayFromArchon = 2;
+		RobotInfo[] nearbyRobots = rc.senseNearbyRobots(movesAwayFromArchon*movesAwayFromArchon);
 		for (RobotInfo robot : nearbyRobots)
 		{
 			if(robot.type == RobotType.ARCHON)
@@ -75,7 +88,6 @@ public class Soldier
 		if(makerArchon != null)
 		{
 			dirToMove = makerArchon.location.directionTo(myLoc); //away from archon
-			int movesAwayFromArchon = 2;
 			while(movesAwayFromArchon > 0)
 			{
 				if(rc.isCoreReady())
@@ -84,15 +96,15 @@ public class Soldier
 					int timesRotated = 0;
 					boolean done = false;
 					boolean turnLeft = rand.nextBoolean(); //if true keep turning left, if false keep turning right
+					//start in a direction, choose a random way to turn, turn that way until you've tried all the directions
 					while((timesRotated < numDirections) && (! done))
 					{
 						double rubble = rc.senseRubble(myLoc.add(dirToMove));
-						if(rubble > GameConstants.RUBBLE_OBSTRUCTION_THRESH)
+						if(rubble >= GameConstants.RUBBLE_OBSTRUCTION_THRESH)
 						{
 							if(rubble >= tooMuchRubble && Math.random() < probIgnoreRubbleIfNotTooMuch) //try another direction
 							{
-								tooMuchRubble *= 2;
-								System.out.println("ha!");
+								tooMuchRubble *= rubbleToleranceGrowthFactor;
 								dirToMove = turn(dirToMove, turnLeft);
 								timesRotated ++;
 							}
@@ -129,62 +141,217 @@ public class Soldier
 
 		while(true)
 		{
+			//protectors mostly aren't used, at least now
 			if(isProtector)
 			{
 				try
 				{
 					makerArchon = rc.senseRobot(makerArchonID);
 					goalLoc = makerArchon.location;
+					turnsLeft = myLoc.distanceSquaredTo(goalLoc);
 				}
 				catch (Exception GameActionException)
 				{
 					//nothing
 				}
 			}
-
-			//try to attack, if successful then finish turn
-			//does not prioritize who to attack for now
-			if(foesMaybeNearby)
+			
+			//try to attack weakest foe, if successful then finish turn
+			if(anyFoesToAttack)
 			{
-				if(rc.isWeaponReady()) //maybe different flow here
+				if(rc.isWeaponReady()) //maybe different flow here?
 				{
-					RobotInfo[] foes = rc.senseHostileRobots(myLoc, RobotPlayer.myType.attackRadiusSquared);
-					
-					double lowestHealth = 100000;
-					RobotInfo weakestFoe = null;
-					for(RobotInfo foe : foes)
-					{
-						if(foe.health < lowestHealth)
-						{
-							weakestFoe = foe;
-							lowestHealth = foe.health;
-						}
-					}
-					
-					if(foes.length > 0 && weakestFoe != null)
-					{
-						rc.attackLocation(weakestFoe.location);
-						if(Math.random() < probSignal)
-						{
-							rc.broadcastSignal(foeSignalRadiusSquared);
-						}
-					}
-					/*
-					//normal attacking, too much bytecode may be a problem, takes first guy
+					RobotInfo[] foes = rc.senseHostileRobots(myLoc, RobotType.SOLDIER.attackRadiusSquared);
+
 					if(foes.length > 0)
 					{
-						//does randomizing make a difference here?
-						rc.attackLocation(foes[0].location);
+						RobotInfo targetFoe = null;
+						double lowestHealth = 0;
+						for(RobotInfo foe : foes)
+						{
+							if(foe.type == RobotType.ARCHON) //highest priority
+							{
+								targetFoe = foe;
+								//should send out a huge signal?
+								break;
+							}
+							if(lowestHealth == 0 || foe.health < lowestHealth)
+							{
+								targetFoe = foe;
+								lowestHealth = foe.health;
+							}
+						}
 						
+						/*//code to go towards turrets, as Cole said, really horrible unless with lots of friends
+						  //turrets just destroy soldiers, soldiers never get a chance to fire
+						 if(weakestFoe.type == RobotType.TURRET && myLoc.distanceSquaredTo(weakestFoe.location) > GameConstants.TURRET_MINIMUM_RANGE) //move closer
+						 {
+						 	//move towards it
+						 	dirToMove = myLoc.directionTo(weakestFoe.location);
+						 	simpleTryMove(dirToMove);
+						 	if(rc.isWeaponReady()); //may not need this, will never be ready?
+						 	{
+						 		rc.attackLocation(weakestFoe.location);
+						 	}
+						 }
+						 */
+						
+						//first kiting code below is best
+						//others may be good with tweaking but seems unlikely
+						
+						//kiting in a while loop approach
+						//move until out of foe's attack range, then fire
+						//if your foe has a greater attack range or the same attack range, just attack it
+						if(targetFoe.type.attackRadiusSquared < RobotType.SOLDIER.attackRadiusSquared
+						   && myLoc.distanceSquaredTo(targetFoe.location) <= targetFoe.type.attackRadiusSquared)
+						{
+							Direction away = targetFoe.location.directionTo(myLoc);
+							simpleTryMove(away);
+							boolean enemyStillThere = true;
+							while(myLoc.distanceSquaredTo(targetFoe.location) <= targetFoe.type.attackRadiusSquared)
+							{
+								try
+								{
+									targetFoe = rc.senseRobot(targetFoe.ID);
+									away = targetFoe.location.directionTo(myLoc);
+									simpleTryMove(away);
+								}
+								catch (Exception GameActionException)
+								{
+									enemyStillThere = false;
+									simpleTryMove(away.opposite());
+									break;
+								}
+								myLoc = rc.getLocation();
+
+							}
+							if(enemyStillThere && rc.isWeaponReady() && rc.canAttackLocation(targetFoe.location))
+							{
+								rc.attackLocation(targetFoe.location);
+							}
+						}
+						
+						/*//stay as far away as you can as long as you can still attack any foes that can attack you
+						//kiting in a while loop approach
+						if(targetFoe.type.canAttack())
+						{
+							if(RobotPlayer.myType.attackRadiusSquared - myLoc.distanceSquaredTo(targetFoe.location) > 100)
+							{
+								System.out.println("too close");
+								Direction away = targetFoe.location.directionTo(myLoc);
+								simpleTryMove(away);
+								boolean enemyStillThere = true;
+								while(RobotPlayer.myType.attackRadiusSquared - myLoc.distanceSquaredTo(targetFoe.location) > 100)
+								{
+									try
+									{
+										targetFoe = rc.senseRobot(targetFoe.ID);
+										away = targetFoe.location.directionTo(myLoc);
+										simpleTryMove(away);
+									}
+									catch (Exception GameActionException)
+									{
+										enemyStillThere = false;
+										simpleTryMove(away.opposite());
+										break;
+									}
+									myLoc = rc.getLocation();
+
+								}
+								if(enemyStillThere && rc.isWeaponReady() && rc.canAttackLocation(targetFoe.location))
+								{
+									rc.attackLocation(targetFoe.location);
+								}
+							}
+							else
+							{
+								if(rc.isWeaponReady() && rc.canAttackLocation(targetFoe.location))
+								{
+									rc.attackLocation(targetFoe.location);
+								}
+							}
+						}
+						*/
+						
+						/*//first sort of kiting
+						//move until out of foe's attack range, then fire
+						//if your foe has a greater attack range or the same attack range, just attack it
+						if(targetFoe.type.attackRadiusSquared < RobotPlayer.myType.attackRadiusSquared
+					       && myLoc.distanceSquaredTo(targetFoe.location) <= targetFoe.type.attackRadiusSquared)
+						{
+							simpleTryMove(targetFoe.location.directionTo(myLoc));
+						}
+						*/
+						
+						/*//second sort of kiting
+						//kite, move away from foe, then try to fire, then move away, try to fire, move away
+						//when out of foe's attack range, just fire
+						//if your foe has a greater attack range or the same attack range, just attack it
+						if(targetFoe.type.attackRadiusSquared < RobotPlayer.myType.attackRadiusSquared
+						&& myLoc.distanceSquaredTo(targetFoe.location) <= targetFoe.type.attackRadiusSquared)
+						{
+							simpleTryMove(targetFoe.location.directionTo(myLoc));
+							if(rc.isWeaponReady())
+							{
+								try
+								{
+									rc.attackLocation(rc.senseRobot(targetFoe.ID).location);
+								}
+								catch (Exception GameActionException)
+								{
+									//nothing
+								}
+							}
+						}
+						*/
+						
+						/*//just kites for BIGZOMBIE
+						if(targetFoe.type == RobotType.BIGZOMBIE && myLoc.distanceSquaredTo(targetFoe.location) <= RobotType.BIGZOMBIE.attackRadiusSquared)
+						{
+							//move away from it
+							simpleTryMove(targetFoe.location.directionTo(myLoc));
+							if(rc.isWeaponReady())
+							{
+								try
+								{
+									rc.attackLocation(rc.senseRobot(targetFoe.ID).location);
+								}
+								catch (Exception GameActionException)
+								{
+									//nothing
+								}
+							}
+						}
+						*/
+						
+						//if using any kiting, free up this section, else comment out
+						else
+						{
+							if(rc.isWeaponReady() && rc.canAttackLocation(targetFoe.location))
+							{
+								rc.attackLocation(targetFoe.location);
+							}
+						}
+												
 						if(Math.random() < probSignal)
 						{
 							rc.broadcastSignal(foeSignalRadiusSquared);
 						}
 					}
-					*/
-					else //no foes nearby
+					else //no foes in attack range
 					{
-						foesMaybeNearby = false;
+						anyFoesToAttack = false;
+						RobotInfo[] foesYouCanOnlySee = rc.senseHostileRobots(myLoc, RobotType.SOLDIER.sensorRadiusSquared);
+						//could do min thing here too, but $$$?
+						if(foesYouCanOnlySee.length > 0)
+						{
+							goalLoc = foesYouCanOnlySee[0].location;
+
+							if(Math.random() < probSignal)
+							{
+								rc.broadcastSignal(foeSignalRadiusSquared);
+							}
+						}
 						continue;
 					}
 				}
@@ -193,27 +360,54 @@ public class Soldier
 			{
 				if(goalLoc == null)
 				{
+					//follow signal closest to you
+					Signal[] signals = rc.emptySignalQueue();
+					MapLocation closestSignalLoc = null;
+					double smallestCloseness = 0;
+					for(Signal signal : signals)
+					{
+						MapLocation signalLoc = signal.getLocation();
+						double signalCloseness = myLoc.distanceSquaredTo(signalLoc);
+						//follow enemy signals to kill messengers or your own team's signals to group up
+						if((smallestCloseness == 0 || signalCloseness < smallestCloseness) && (signal.getMessage() == null || signal.getTeam() != myTeam))
+						{
+							closestSignalLoc = signalLoc;
+							smallestCloseness = signalCloseness;
+						}
+					}
+					if(closestSignalLoc != null)
+					{
+						goalLoc = closestSignalLoc;
+						dirToMove =  myLoc.directionTo(goalLoc);
+						turnsLeft = (int) smallestCloseness; //not sure what would be better
+						continue;
+					}
+					
+					/* //old way of doing it, just gets first acceptable signal
 					boolean gotNewGoalLoc = false;
 					Signal[] signals = rc.emptySignalQueue();
 					for(Signal signal : signals)
 					{
-						if((signal.getMessage() == null) && (signal.getTeam() == myTeam))
+						//can check && (signal.getTeam() == myTeam), this way explores all messages
+						if(signal.getMessage() == null || signal.getTeam() != myTeam)
 						{
 							goalLoc = signal.getLocation();
-							stepsLeft = myLoc.distanceSquaredTo(goalLoc); //not sure what would be better
+							turnsLeft = myLoc.distanceSquaredTo(goalLoc); //not sure what would be better
 							dirToMove =  myLoc.directionTo(goalLoc);
 							gotNewGoalLoc = true;
-							break;
 						}
 					}
 					if(gotNewGoalLoc)
 					{
 						continue;
 					}
+					 */
+					
 					else //move randomly
-						//this code is copied some below
+						 //this code is copied some below
+						 //maybe change to move towards friends
 					{
-						if(Math.random() < probMove && rc.isCoreReady())
+						if(rc.isCoreReady() && Math.random() < probMove)
 						{
 							int timesRotated = 0;
 							boolean done = false;
@@ -230,10 +424,11 @@ public class Soldier
 							while((timesRotated < numDirections) && (! done))
 							{
 								double rubble = rc.senseRubble(myLoc.add(dirToMove));
-								if(rubble > GameConstants.RUBBLE_OBSTRUCTION_THRESH)
+								if(rubble > GameConstants.RUBBLE_OBSTRUCTION_THRESH) //can't get through it
 								{
-									if(rubble >= tooMuchRubble) //try another direction
+									if(rubble >= tooMuchRubble && Math.random() < probIgnoreRubbleIfNotTooMuch) //try another direction
 									{
+										tooMuchRubble *= rubbleToleranceGrowthFactor;
 										dirToMove = turn(dirToMove, turnLeft);
 										timesRotated ++;
 									}
@@ -248,7 +443,7 @@ public class Soldier
 									if(rc.canMove(dirToMove))
 									{
 										rc.move(dirToMove);
-										stepsLeft --;
+										turnsLeft --;
 										done = true;
 										myLoc = rc.getLocation();
 									}
@@ -266,7 +461,7 @@ public class Soldier
 				{
 					if(rc.isCoreReady())
 					{
-						if((myLoc.distanceSquaredTo(goalLoc) <= closeEnoughSquared) || (stepsLeft <= 0)) // done
+						if((myLoc.distanceSquaredTo(goalLoc) <= closeEnoughSquared) || (turnsLeft <= 0)) //done
 						{
 							goalLoc = null;
 							dirToMove = Direction.NONE;
@@ -289,11 +484,12 @@ public class Soldier
 								double rubble = rc.senseRubble(myLoc.add(dirToMove));
 								if(rubble >= GameConstants.RUBBLE_OBSTRUCTION_THRESH)
 								{
-									if(rubble >= tooMuchRubble) //try another direction
+									if(rubble >= tooMuchRubble && Math.random() < probIgnoreRubbleIfNotTooMuch) //try another direction
 									{
+										tooMuchRubble *= rubbleToleranceGrowthFactor;
 										dirToMove = turn(dirToMove, turnLeft);
 										timesRotated ++;
-										offCourse = true;
+										offCourse = true; //means you have to recompute direction to goalLoc
 									}
 									else //clear the rubble
 									{
@@ -306,7 +502,7 @@ public class Soldier
 									if(rc.canMove(dirToMove))
 									{
 										rc.move(dirToMove);
-										stepsLeft --;
+										turnsLeft --;
 										done = true;
 										myLoc = rc.getLocation();
 									}
@@ -321,9 +517,18 @@ public class Soldier
 						}
 					}
 				}
-				foesMaybeNearby = true;
+				anyFoesToAttack = true;
 			}
 			Clock.yield(); //end after if statement
+		}
+	}
+
+	public static void simpleTryMove(Direction dirToMove) throws GameActionException
+	{
+		if(rc.isCoreReady() && rc.canMove(dirToMove))
+		{
+			rc.move(dirToMove);
+			Clock.yield();
 		}
 	}
 

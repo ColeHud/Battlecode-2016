@@ -5,131 +5,121 @@ import java.util.*;
 
 public class Scout 
 {
-	public static Random rand;
 	public static RobotController rc;
-	public static MapLocation spawn;
-	public static int minPartsToGet = 10;
-	public static int foeSignalRadiusSquared = 100;
-	public static double probSignal = 0.1;
+	public static Random rand;
 	
+	//for pathing
+	public static ArrayList<MapLocation> slugTrail = new ArrayList<MapLocation>();
+	
+	public static MapLocation[] enemyArchonsInitialPosition;
+	
+	//scouting
+	public static MapLocation pivotLocation = null;
+	public static Direction directionToMove = null;
+	
+	//broadcasting
+	public static int broadcastsThisTurn = 0;
+	public static MapLocation spawnLocation;
+
 	public static void run() throws GameActionException
 	{
 		rc = RobotPlayer.rc;
 		rand = new Random(rc.getID());
 		
-		spawn = rc.getLocation();
-
+		enemyArchonsInitialPosition = rc.getInitialArchonLocations(rc.getTeam().opponent());
+		
+		pivotLocation = rc.getLocation();
+		spawnLocation = pivotLocation;
 		while(true)
 		{
-			scoutMove();
+			broadcastsThisTurn = 0;
+			//signal
+			RobotInfo[] nearbyFoes = rc.senseHostileRobots(rc.getLocation(), RobotType.SCOUT.sensorRadiusSquared);
+			if(nearbyFoes.length > 5)
+			{
+				broadcast(Utility.CLUMP_OF_FOES_CODE, Utility.CLUMP_OF_FOES_CODE);
+			}
+			int numberOfEnemyTurrets = 0;
+			for(RobotInfo foe : nearbyFoes)
+			{
+				if(foe.type == RobotType.TURRET || foe.type == RobotType.TTM)
+				{
+					numberOfEnemyTurrets++;
+				}
+				if(foe.type == RobotType.ZOMBIEDEN)
+				{
+					broadcast(Utility.ZOMBIE_DEN, Utility.ZOMBIE_DEN);
+				}
+			}
+			if(numberOfEnemyTurrets > 3)
+			{
+				broadcast(Utility.ENEMY_TURTLE, Utility.ENEMY_TURTLE);
+			}
 			
-			signalOnSight();
+			//initial case
+			if(directionToMove == null)
+			{
+				//choose a random direction to move in
+				Direction[] possibleDirections = Direction.values();
+				directionToMove = possibleDirections[rand.nextInt(possibleDirections.length)];
+			}
 			
+			//every other case
+			if(rc.canMove(directionToMove))
+			{
+				//if there are foes nearby, choose another direction
+				/*
+				RobotInfo[] foes = rc.senseHostileRobots(rc.getLocation(), RobotType.SCOUT.sensorRadiusSquared);
+				if(foes.length > 0)
+				{
+					//set the direction to move to the enemy so you move away from it
+					directionToMove = rc.getLocation().directionTo(foes[0].location);
+					getNewDirection();
+					if(rc.canMove(directionToMove) && rc.isCoreReady())
+					{
+						rc.move(directionToMove);
+					}
+				}
+				*/
+				/*else */if(rc.isCoreReady())//if there aren't enemies nearby, move int the current direction
+				{
+					rc.move(directionToMove);
+				}
+			}
+			else
+			{
+				//if you can't move in the current direction, find a new one
+				getNewDirection();
+			}
+
 			Clock.yield();
 		}
-	}
+	}	
 	
-	//dodge enemies - scouts shouldn't be taking damage
-	public static void scoutMove() throws GameActionException//incorporates moveRandomly() and a dodge mechanism
+	//broadcast
+	public static void broadcast(int message1, int message2) throws GameActionException
 	{
-		//find if foes are within attack range
-		MapLocation currentLocation = rc.getLocation();
-		RobotInfo[] foes = rc.senseHostileRobots(rc.getLocation(), RobotType.SCOUT.sensorRadiusSquared);
-		ArrayList<RobotInfo> nearAttackRange = new ArrayList<RobotInfo>();
-		
-		for(RobotInfo foe : foes)
+		if(broadcastsThisTurn < 20)
 		{
-			RobotType type = foe.type;
-			if(type != RobotType.ARCHON && type != RobotType.ZOMBIEDEN && type != RobotType.SCOUT)//only want enemies who can attack
-			{
-				//if you're close to the attack range
-				if(currentLocation.distanceSquaredTo(foe.location) < foe.type.attackRadiusSquared + 4)
-				{
-					nearAttackRange.add(foe);
-				}
-			}
-		}
-		
-		//randomly move if there aren't any enemies near you
-		if(nearAttackRange.size() == 0)
-		{
-			moveRandomly();
-			return;
-		}
-		
-		//get the average direction to them
-		ArrayList<Direction> directions = Utility.arrayListOfDirections();
-		int averageDirection = 0;
-		for(RobotInfo foe : nearAttackRange)
-		{
-			averageDirection += directions.indexOf(currentLocation.directionTo(foe.location));
-		}
-		averageDirection /= nearAttackRange.size();
-		Direction directionToEnemies = directions.get(averageDirection);
-		
-		//move away from the enemies
-		Direction directionAwayFromEnemies = directionToEnemies.opposite();
-		if(rc.canMove(directionAwayFromEnemies) && rc.isCoreReady())
-		{
-			rc.move(directionAwayFromEnemies);
-		}
-	}
-	
-	//signal if you see a den, enemy archon, or parts
-	public static void signalOnSight() throws GameActionException
-	{
-		//foes
-		MapLocation currentLocation = rc.getLocation();
-		RobotInfo[] foes = rc.senseHostileRobots(currentLocation, RobotType.SCOUT.sensorRadiusSquared);
-		int broadcastRange = currentLocation.distanceSquaredTo(spawn) * 2;
-		
-		if(foes.length > 0 && Math.random() < probSignal)
-		{
-			rc.broadcastSignal(foeSignalRadiusSquared);
-		}
-		
-		/*//Not sure we should be too specific yet, not using any of these signals
-		for(RobotInfo foe : foes)
-		{			
-			if(foe.type == RobotType.ZOMBIEDEN)// Zombie den
-			{
-				rc.broadcastMessageSignal(Utility.ZOMBIE_DEN_CODE, Utility.ZOMBIE_DEN_CODE, broadcastRange);
-			}
-			else if(foe.type == RobotType.ARCHON)//Archon
-			{
-				rc.broadcastMessageSignal(Utility.ENEMY_ARCHON_CODE, Utility.ENEMY_ARCHON_CODE, broadcastRange);
-			}
-		}
-		*/
-		
-		//parts
-		if(rc.senseParts(currentLocation) >= minPartsToGet)
-		{
-			rc.broadcastMessageSignal(Utility.PARTS_CODE, Utility.PARTS_CODE, broadcastRange);
-		}
-	}
-	
-	//move randomly
-	public static void moveRandomly() throws GameActionException
-	{
-		if(rc.isCoreReady())
-		{
-			boolean hasMoved = false;
-			ArrayList<Direction> directions = Utility.arrayListOfDirections();
+			//calculate the radius to broadcast
+			int radius = rc.getLocation().distanceSquaredTo(spawnLocation);
 			
-			while(hasMoved == false && directions.size() > 0)
-			{
-				Direction dirToTry = directions.get(rand.nextInt(directions.size()));
-				if(rc.canMove(dirToTry))
-				{
-					rc.move(dirToTry);
-					hasMoved = true;
-				}
-				else
-				{
-					directions.remove(dirToTry);
-				}
-			}
+			rc.broadcastMessageSignal(message1, message2, radius);
 		}
+	}
+	
+	//get a new direction to move
+	public static void getNewDirection()
+	{
+		pivotLocation = rc.getLocation();
+		
+		//get a new direction to go
+		ArrayList<Direction> possibleDirections = Utility.arrayListOfDirections();
+		possibleDirections.remove(directionToMove);
+		possibleDirections.remove(directionToMove.rotateRight());
+		possibleDirections.remove(directionToMove.rotateLeft());
+		possibleDirections.remove(directionToMove.opposite());
+		
+		directionToMove = possibleDirections.get(rand.nextInt(possibleDirections.size()));
 	}
 }

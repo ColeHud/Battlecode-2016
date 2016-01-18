@@ -14,7 +14,7 @@ public class Archon
 	//build order
 	//public static RobotType[] buildOrder = {RobotType.SCOUT, RobotType.SOLDIER, RobotType.GUARD, RobotType.SOLDIER, RobotType.TURRET, RobotType.SOLDIER, 
 		//RobotType.SOLDIER, RobotType.TURRET, RobotType.GUARD, RobotType.VIPER};
-	public static RobotType[] buildOrder = {RobotType.SCOUT, RobotType.SOLDIER, RobotType.TURRET, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER};
+	public static RobotType[] buildOrder = {RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.TURRET, RobotType.TURRET, RobotType.SOLDIER};
 	public static int currentBuildNumber = 0;
 	public static int numberOfInitialArchons;
 	public static Random rand;

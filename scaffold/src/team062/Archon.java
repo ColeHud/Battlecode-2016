@@ -1,174 +1,147 @@
 package team062;
 import battlecode.common.*;
-
 import java.util.*;
 
 public class Archon 
 {
-	public static Random rand;
 	public static RobotController rc;
-	public static ArrayList<MapLocation> locationsWithParts = new ArrayList<MapLocation>();
+	public static int strategyNumber = 0;
+	//0 = spawn, 1 = build army, 2 = run away
+
+	//slug trail for pathing
+	public static ArrayList<MapLocation> slugTrail = new ArrayList<MapLocation>(20);
+	
+	//build order
+	//public static RobotType[] buildOrder = {RobotType.SCOUT, RobotType.SOLDIER, RobotType.GUARD, RobotType.SOLDIER, RobotType.TURRET, RobotType.SOLDIER, 
+		//RobotType.SOLDIER, RobotType.TURRET, RobotType.GUARD, RobotType.VIPER};
+	public static RobotType[] buildOrder = {RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.TURRET, RobotType.TURRET, RobotType.SOLDIER};
+	public static int currentBuildNumber = 0;
+	public static int numberOfInitialArchons;
+	public static Random rand;
+	
+	//goals
 	public static MapLocation goal = null;
-	public static boolean goalIsASafeLocation = false;
-	public static RobotType typeToBuild = RobotType.SOLDIER;
-
-	public static double probSignal = 0.2; //prob that it'll send a signal if sees enemy
+	public static boolean goalIsNeutralBot = false;
+	public static int roundsGoingAfterGoal = 0;
+	public static ArrayList<MapLocation> goalsToAvoid = new ArrayList<MapLocation>();
 	
-	//locations
-	public static MapLocation[] nearbyMapLocations;
-	public static MapLocation[] nearbyPartsLocations;
-	public static ArrayList<MapLocation> past10Locations = new ArrayList<MapLocation>(10);//slug trail
 
-	//robots
-	public static RobotInfo[] robots;
-	public static ArrayList<RobotInfo> foes;
-	public static ArrayList<RobotInfo> foesWithinAttackRange;
-
-	//messages
-	public static int archonInTroubleSignalRadiusSquared = 144;
-	
-	//rubble
-	public static double tooMuchRubble = 100;
-	public static double probClearRubbleAnyways = 0.2;
-	
 	public static void run() throws GameActionException
 	{
 		rc = RobotPlayer.rc;
+		numberOfInitialArchons = rc.getInitialArchonLocations(rc.getTeam()).length;
 		rand = new Random(rc.getID());
-		
-		//build scouts right away
-		buildRobot(RobotType.SCOUT);
 
 		while(true)
-		{	
-			/*
-			 * INPUT
-			 */
-			if(rc.getLocation().equals(goal))
+		{
+			//GOAL COMPLETION
+			if(goal != null)
 			{
-				goal = null;//you made it to the goal
-				past10Locations = new ArrayList<MapLocation>();//delete the slug trail after you reach your goal
-			}
-
-			//sense locations around you
-			nearbyMapLocations = MapLocation.getAllMapLocationsWithinRadiusSq(rc.getLocation(), rc.getType().sensorRadiusSquared);
-
-			//parts locations 
-			nearbyPartsLocations = rc.sensePartLocations(RobotType.ARCHON.sensorRadiusSquared);
-
-			//find the nearest mapLocation with the most parts
-			double maxParts = 0;
-			MapLocation nearbyLocationWithMostParts = null;
-			for(MapLocation loc : nearbyPartsLocations)
-			{
-				//add to locationsWithParts arraylist
-				if(locationsWithParts.contains(loc) == false)
+				if(rc.getLocation().distanceSquaredTo(goal) == 1 && goalIsNeutralBot)
 				{
-					locationsWithParts.add(loc);
-				}
-
-				//find the location with the most parts
-				double partsAtLoc = rc.senseParts(loc);
-				if(partsAtLoc > maxParts)
-				{
-					maxParts = partsAtLoc;
-					nearbyLocationWithMostParts = loc;
-				}
-			}
-
-			//read signals
-			Signal[] signals = rc.emptySignalQueue();
-			for(Signal signal : signals)
-			{
-				//check if the signal has parts at the location
-				int[] message = signal.getMessage();
-				if(message != null && message[0] == Utility.PARTS_CODE)
-				{
-					//add that location to the locationsWithParts arraylist
-					locationsWithParts.add(signal.getLocation());
-				}
-			}
-
-			//sense robots
-			MapLocation myLoc = rc.getLocation();
-			robots = rc.senseNearbyRobots();
-			foes = new ArrayList<RobotInfo>();
-			foesWithinAttackRange = new ArrayList<RobotInfo>();
-			for(RobotInfo robot : robots)
-			{
-				if(robot.team == Team.ZOMBIE || robot.team == rc.getTeam().opponent())//if the robot is a foe
-				{
-					foes.add(robot);
-
-					if(myLoc.distanceSquaredTo(robot.location) < robot.type.attackRadiusSquared)
+					if(rc.isCoreReady())
 					{
-						foesWithinAttackRange.add(robot);
+						rc.activate(goal);
+					}
+					goal = null;
+				}
+				
+				if(rc.getLocation().equals(goal))
+				{
+					goal = null;
+				}
+				else if(roundsGoingAfterGoal > 20)
+				{
+					goalsToAvoid.add(goal);
+					goal = null;
+				}
+			}
+			
+			//EVASION CODE
+			RobotInfo[] foes = rc.senseHostileRobots(rc.getLocation(), RobotType.ARCHON.sensorRadiusSquared);
+			int numberOfFoesNearAttackRadius = 0;
+			if(foes.length > 0)
+			{
+				for(RobotInfo foe : foes)
+				{
+					MapLocation currentLocation = rc.getLocation();
+					MapLocation foeLocation = foe.location;
+					if(currentLocation.distanceSquaredTo(foeLocation) > foe.type.attackRadiusSquared - 1)
+					{
+						moveToLocation(findSaferLocation());//don't want to do anything else if you're evading
+						break;
 					}
 				}
 			}
-			int nearbyFoes = foes.size();
-			int nearbyFoesInAttackRange = foesWithinAttackRange.size();
-
-			/*//check stats
-			double health = rc.getHealth();
-			int infectedTurns = rc.getInfectedTurns();
-			int robotsAlive = rc.getRobotCount();
-			*/
-
-			/*
-			 * OUPUT
-			 */
-
-			//what to do
-			if(nearbyFoes == 0)//if there are no foes in sight
+			else//if there are no enemies nearby, then try to move to the goal
 			{
-				if(rc.getTeamParts() >= RobotType.TURRET.partCost)//build if you can
+				
+			}
+			
+			//BUILDING CODE
+			double chancesOfBuilding = 1.0/(double)numberOfInitialArchons;
+			double random = rand.nextFloat();
+			if(random <= chancesOfBuilding && canBuildSomething())//you get to build! :)
+			{
+				rc.setIndicatorString(0, "Building");
+				buildStrategicRobot();
+				continue;
+			}
+			else//if you can't build anything, go look for some parts/move to the current goal
+			{
+				if(goal != null)
 				{
-					buildRobots();
+					rc.setIndicatorString(0, "Moving");
+					moveToLocation(goal);
 				}
 				else
 				{
-					if(maxParts > 0 && goal == null)//if there are parts nearby
+					rc.setIndicatorString(0, "Finding new parts or neutral bots");
+					//GO ACTIVATE NEUTRAL BOTS
+					RobotInfo[] neutralBots = rc.senseNearbyRobots(RobotType.ARCHON.sensorRadiusSquared, Team.NEUTRAL);
+					if(neutralBots.length > 0)
 					{
-						//make that the goal
-						goal = nearbyLocationWithMostParts;
+						goal = neutralBots[0].location;
+						goalIsNeutralBot = true;
 					}
-					else if(goal == null)//if there aren't and there is no goal
+					else
 					{
-						//build something or find new parts
-						//80% build, 20% new parts
-						if(locationsWithParts.size() > 0 && rand.nextFloat() > .8)
-						{
-							goal = locationsWithParts.get(0);
-							locationsWithParts.remove(0);
-							goalIsASafeLocation = false;
-						}
-						//calculate the next goal - maybe a new parts location you got via signal
-					}
-					else if(goal != null)//if there is a goal, move there
-					{
-						moveToLocation(goal);
+						findNearbyPartsAndSetGoal();
 					}
 				}
 			}
-			else//there are foes nearby
-			{
-				//message for help!
-				if(Math.random() < probSignal)
-				{
-					rc.broadcastSignal(archonInTroubleSignalRadiusSquared);
-				}
-				
-				if(nearbyFoesInAttackRange > 0)
-				{
-					goal = findSaferLocation();
-					rc.setIndicatorString(0, "" + goal.x + " " + goal.y);
-					goalIsASafeLocation = true;
-					moveToLocation(goal);
-				}
-			}
+			
+			
+			
 
 			Clock.yield();
+		}
+	}
+	
+	//find nearby parts and make that the new goal
+	public static void findNearbyPartsAndSetGoal()
+	{
+		//FIND PARTS
+		MapLocation[] nearbyParts = rc.sensePartLocations(RobotType.ARCHON.sensorRadiusSquared);
+		if(nearbyParts.length > 0)
+		{
+			//find the location with the most parts
+			double mostParts = 0;
+			MapLocation locationWithMostParts = null;
+			for(MapLocation partsLocation : nearbyParts)
+			{
+				double partsAtLocation = rc.senseParts(partsLocation);
+				if(partsAtLocation > mostParts && goalsToAvoid.contains(partsLocation) == false)//there are a lot of parts and this isn't a goal to avoid
+				{
+					mostParts = partsAtLocation;
+					locationWithMostParts = partsLocation;
+				}
+			}
+			if(locationWithMostParts != null)
+			{
+				goal = locationWithMostParts;
+				goalIsNeutralBot = false;
+			}
 		}
 	}
 
@@ -178,36 +151,6 @@ public class Archon
 		MapLocation currentLocation = rc.getLocation();
 		ArrayList<Direction> directions = Utility.arrayListOfDirections();
 
-		/*
-		ArrayList<Integer> enemiesInEachDirection = new ArrayList<Integer>(10);
-		//initialize the enemiesInEachDirection arraylist
-		for(int i = 0; i < 10; i++)
-		{
-			enemiesInEachDirection.add(0);
-		}
-
-		for(RobotInfo foe : foes)
-		{
-			Direction dirToFoe = currentLocation.directionTo(foe.location);
-			int index = directions.indexOf(dirToFoe);
-			int numberOfFoesInDirection = enemiesInEachDirection.get(index);
-			enemiesInEachDirection.set(index, numberOfFoesInDirection++);
-		}
-
-		int leastEnemies = 1000000;
-		int directionWithLeastEnemies = 0;
-		for(int i = 0; i<enemiesInEachDirection.size(); i++)
-		{
-			int numberOfEnemies = enemiesInEachDirection.get(i);
-			if(numberOfEnemies < leastEnemies)
-			{
-				directionWithLeastEnemies = i;
-				leastEnemies = numberOfEnemies;
-			}
-		}
-
-		Direction direction = directions.get(directionWithLeastEnemies);//the direction with the fewest enemies
-		 */
 
 		//find if foes are within attack range
 		RobotInfo[] foes = rc.senseHostileRobots(rc.getLocation(), RobotType.SCOUT.sensorRadiusSquared);
@@ -226,31 +169,6 @@ public class Archon
 			}
 		}
 
-		//get average loc of hostiles
-		//could also just run away from the closest hostile
-		//neither one of those would have you go up or down if you have enemies directly to
-		//your left and right
-		int n_hostiles = 0;
-		int x_sum = 0;
-		int y_sum = 0;
-		if(nearAttackRange.size() > 0)
-		{
-			for(RobotInfo robot : nearAttackRange)
-			{
-				n_hostiles ++;
-				MapLocation robotLoc = robot.location;
-				x_sum += robotLoc.x;
-				y_sum += robotLoc.y;
-			}
-			int x = x_sum / n_hostiles;
-			int y = y_sum / n_hostiles;
-			MapLocation hostileLoc = new MapLocation(x, y);
-			Direction dirToMove = hostileLoc.directionTo(rc.getLocation());
-			MapLocation locationToGoTo = currentLocation.add(dirToMove, (int)Math.sqrt(RobotType.ARCHON.sensorRadiusSquared));
-			return locationToGoTo;
-		}
-		
-		/* OTHER WAY TO DO IT
 		//get the average direction to them
 		//ArrayList<Direction> listOfDirections = Utility.arrayListOfDirections();
 		int averageDirection = 0;
@@ -267,146 +185,18 @@ public class Archon
 			MapLocation locationToGoTo = currentLocation.add(directionToEnemies.opposite(), (int)Math.sqrt(RobotType.ARCHON.sensorRadiusSquared));
 			return locationToGoTo;
 		}
-		*/
-		
 		else
 		{
 			return rc.getLocation();
 		}
 	}
 
-	//move to a maplocation
-	public static void moveToLocation(MapLocation m) throws GameActionException
+	//build a robot based on the strategy
+	public static void buildStrategicRobot() throws GameActionException
 	{
-		MapLocation currentLoc = rc.getLocation();
-		Direction directionToM = currentLoc.directionTo(m);
-		Direction actualDirectionToMove = directionToM;
-
-		//deal with the slug trail - trim it to size
-		if(past10Locations.size() > 10)
+		if(rc.getTeamParts() >= buildOrder[currentBuildNumber].partCost)
 		{
-			while(past10Locations.size() > 10)
-			{
-				past10Locations.remove(past10Locations.size() - 1);
-			}
-		}
-		past10Locations.add(currentLoc);
-
-		MapLocation locationToMoveTo = currentLoc.add(directionToM);
-
-		if(canMoveThere(actualDirectionToMove, locationToMoveTo))//make sure it's not part of the slug trail and it's not blocked by rubble and you can move there
-		{
-			moveInDirection(actualDirectionToMove);
-		}
-		else
-		{
-			//first, check if you should remove rubble. only if the surrounding squares are empty
-			//boolean shouldRemoveRubble = false;
-			int directionsWithRubble = 0;
-			for(Direction d : Direction.values())
-			{
-				MapLocation added = goal.add(d);
-				boolean isFullOfRubble = rc.senseRubble(added) > 50;
-				if(isFullOfRubble)
-				{
-					directionsWithRubble++;
-				}
-			}
-			if(directionsWithRubble > 2)//if it's surrounded then dig
-			{
-				if(rc.isCoreReady())
-				{
-					if(actualDirectionToMove.equals(Direction.OMNI) == false)
-					{
-						rc.clearRubble(actualDirectionToMove);
-					}
-				}
-			}
-			else //if not, path around it
-			{
-				Direction right = actualDirectionToMove.rotateRight();
-				MapLocation rightLoc = currentLoc.add(right);
-
-				while(right.equals(actualDirectionToMove) == false)
-				{
-					if(canMoveThere(right, rightLoc))
-					{
-						moveInDirection(right);
-						right = actualDirectionToMove;
-					}
-					else
-					{
-						right = right.rotateRight();
-						rightLoc = currentLoc.add(right);
-					}
-				}
-			}
-		}
-	}
-
-	//can move to a location
-	public static boolean canMoveThere(Direction d, MapLocation m)
-	{
-		//check not too any rubble? && rc.senseRubble(m) < 50, seems to maybe get it stuck in big piles of rubble
-		if(past10Locations.contains(m) == false && rc.canMove(d))//make sure it's not part of the slug trail and it's not blocked by rubble and you can move there
-		{
-			return true;
-		}
-		else
-		{
-			return false;
-		}
-	}
-
-	//move in a given direction
-	public static void moveInDirection(Direction d) throws GameActionException
-	{
-		MapLocation m = rc.getLocation().add(d);
-
-		if(rc.senseRubble(m) < tooMuchRubble || Math.random() < probClearRubbleAnyways)//if it's less than 20, just move there
-		{
-			if(rc.isCoreReady() && rc.canMove(d))
-			{
-				rc.move(d);
-			}
-		}
-		else//clear it
-		{
-			if(rc.isCoreReady())
-			{
-				rc.clearRubble(d);	
-			}
-		}
-	}
-
-	//build robots
-	public static void buildRobots() throws GameActionException
-	{
-		//check if you should build
-		if(rc.getTeamParts() > RobotType.TURRET.partCost)
-		{
-			//if the current type to build != null, build one of that type
-			if(typeToBuild != null && rc.hasBuildRequirements(typeToBuild))
-			{
-				buildRobot(typeToBuild);
-				typeToBuild = null;
-			}
-			else
-			{
-				double percent = Math.random();
-				if(percent <= Utility.PERCENTAGE_TURRETS) //build turret
-				{
-					typeToBuild = RobotType.TURRET;
-				}
-				else if(percent <= Utility.PERCENTAGE_TURRETS + Utility.PERCENTAGE_SOLDIERS) //build a soldier
-				{
-					typeToBuild = RobotType.SOLDIER;
-				}
-				else
-				{
-					typeToBuild = RobotType.SCOUT;
-				}
-			}
+			buildRobot(buildOrder[currentBuildNumber]);
 		}
 	}
 
@@ -421,9 +211,98 @@ public class Archon
 				if(rc.canBuild(dir, type))
 				{
 					rc.build(dir, type);
+					currentBuildNumber++;//iterate the bot to build
+					if(currentBuildNumber >= buildOrder.length)
+					{
+						currentBuildNumber = 0;
+					}
 					return;
 				}
 			}
 		}
 	}
+
+	//can build something
+	public static boolean canBuildSomething()
+	{
+		if(rc.isCoreReady() && rc.getTeamParts() > buildOrder[currentBuildNumber].partCost)
+		{
+			Direction[] directions = Direction.values();
+			for(Direction direction : directions)
+			{
+				if(rc.canBuild(direction, buildOrder[currentBuildNumber]))
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	
+	//move to a location
+	public static void moveToLocation(MapLocation location) throws GameActionException
+	{
+		if(rc.isCoreReady())
+		{
+			MapLocation currentLocation = rc.getLocation();
+
+			//trim the slug trail to size 20
+			slugTrail.add(currentLocation);
+			if(slugTrail.size() > 20)
+			{
+				slugTrail.remove(0);
+			}
+
+			Direction candidateDirection = currentLocation.directionTo(location);
+			MapLocation locationInDirection = currentLocation.add(candidateDirection);
+			double rubbleAtLocation = rc.senseRubble(locationInDirection);
+
+			if(slugTrail.contains(locationInDirection))//if you've just been there
+			{
+				for(int i = 0; i < 8; i++)
+				{
+					candidateDirection = candidateDirection.rotateRight();
+					locationInDirection = currentLocation.add(candidateDirection);
+					rubbleAtLocation = rc.senseRubble(locationInDirection);
+
+					if(rc.canMove(candidateDirection) && slugTrail.contains(locationInDirection) == false && rubbleAtLocation < GameConstants.RUBBLE_OBSTRUCTION_THRESH)//move there then return
+					{
+						rc.setIndicatorString(0, "Trying to move");
+						rc.move(candidateDirection);
+						return;
+					}
+
+				}
+			}
+			else
+			{
+				if(rc.canMove(candidateDirection) && rubbleAtLocation < GameConstants.RUBBLE_OBSTRUCTION_THRESH)
+				{
+					rc.move(candidateDirection);
+				}
+				else
+				{
+					for(int i = 0; i < 8; i++)
+					{
+						candidateDirection = candidateDirection.rotateRight();
+						locationInDirection = currentLocation.add(candidateDirection);
+						rubbleAtLocation = rc.senseRubble(locationInDirection);
+
+						if(rc.canMove(candidateDirection) && slugTrail.contains(locationInDirection) == false && rubbleAtLocation < GameConstants.RUBBLE_OBSTRUCTION_THRESH)//move there then return
+						{
+							rc.setIndicatorString(0, "Trying to move");
+							rc.move(candidateDirection);
+							return;
+						}
+
+					}
+				}
+			}
+		}
+	}
+
 }

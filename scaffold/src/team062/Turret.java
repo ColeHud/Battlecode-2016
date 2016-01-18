@@ -1,255 +1,199 @@
 package team062;
-import battlecode.common.*;
-
 import java.util.*;
 
-/* Rough overview of what the turrets will do: 
- * 
- */
-
-
-//move constants and all that inside or outside
+import battlecode.common.*;
 
 public class Turret 
 {
-	public static Random rand;
 	public static RobotController rc;
 
-	public static Direction[] directions = {Direction.NORTH, Direction.NORTH_EAST, Direction.EAST, Direction.SOUTH_EAST,
-			Direction.SOUTH, Direction.SOUTH_WEST, Direction.WEST, Direction.NORTH_WEST};
-	public static int numDirections = directions.length;
-	public static double tooMuchRubble = 50; //how much rubble there has to be so that the soldiers don't try to clear it
-	public static int squaredMinStartDistFromArchon = 4;
-
-	public static int foeSignalRadiusSquared = 49; 
-	public static double probSignal = 0.1;	
+	//slug trail for pathing
+	public static ArrayList<MapLocation> slugTrail = new ArrayList<MapLocation>(20);
 	
+	//goal maplocation
+	public static MapLocation goal = null;
+	
+	public static Random rand;
+	public static Team myTeam;
+
 	public static void run() throws GameActionException
 	{
 		rc = RobotPlayer.rc;
 		rand = new Random(rc.getID());
-		Team enemyTeam = rc.getTeam().opponent();
-		boolean isPacked = false; //whether or not the turret is packed (is a TTM)
-		int maxTurnsToRunAway = 10; //how many turns TTMs should run away for before standing their ground
-		int turnsToRunAway = maxTurnsToRunAway; //doesn't need to start with a value, but compiler complained
-		MapLocation myLoc = rc.getLocation();
-		Direction dirToMove = null;
-
-		//move a little away from archon, may want to leave even more space
-		RobotInfo makerArchon = null;
-		RobotInfo[] nearbyRobots = rc.senseNearbyRobots(squaredMinStartDistFromArchon);
-		for (RobotInfo robot : nearbyRobots)
-		{
-			if(robot.type == RobotType.ARCHON)
-			{
-				makerArchon = robot;
-				break;
-			}
-		}
-		if(makerArchon != null)
-		{
-			dirToMove = makerArchon.location.directionTo(myLoc); //away from Archon
-			int movesAwayFromArchon = 2;
-			rc.pack();
-			while(movesAwayFromArchon > 0)
-			{
-				if(rc.isCoreReady())
-				{
-					int timesRotated = 0;
-					boolean done = false;
-					boolean turnLeft = rand.nextBoolean(); //if true keep turning left, if false keep turning right
-					while((timesRotated < numDirections) && (! done))
-					{
-						double rubble = rc.senseRubble(myLoc.add(dirToMove));
-						if(rubble > GameConstants.RUBBLE_OBSTRUCTION_THRESH)
-						{
-							if(rubble >= tooMuchRubble) //try another direction
-							{
-								dirToMove = turn(dirToMove, turnLeft);
-								timesRotated ++;
-							}
-							else //clear the rubble
-							{
-								rc.clearRubble(dirToMove);
-								done = true;
-							}
-						}
-						else
-						{
-							if(rc.canMove(dirToMove))
-							{
-								rc.move(dirToMove);
-								done = true;
-								myLoc = rc.getLocation();
-							}
-							else
-							{
-								dirToMove = turn(dirToMove, turnLeft);
-								timesRotated ++;
-							}
-						}
-					}
-					movesAwayFromArchon --;
-				}
-				Clock.yield();
-			}
-			rc.unpack();
-		}
-
+		myTeam = rc.getTeam();
 		while(true)
 		{	
-			if(isPacked)
+			//read signals
+			Signal[] signals = rc.emptySignalQueue();
+			for(Signal signal : signals)
 			{
-				//check if far away enough from enemies now
-				myLoc = rc.getLocation();
-				RobotInfo[] foesTooCloseToMe = rc.senseHostileRobots(myLoc, GameConstants.TURRET_MINIMUM_RANGE);
-				if(foesTooCloseToMe.length == 0 || turnsToRunAway <= 0) //can stop running
+				int[] message = signal.getMessage();
+				if(message != null)
+				{
+					if(message[0] == Utility.ENEMY_TURTLE)
+					{
+						goal = signal.getLocation();
+					}
+				}
+			}
+			
+			//sense the robots around you
+			RobotInfo[] nearbyBots = rc.senseNearbyRobots();
+			RobotInfo[] nearbyFoes = rc.senseHostileRobots(rc.getLocation(), RobotType.TURRET.sensorRadiusSquared);
+			ArrayList<RobotInfo> nearbyFriendlySoldiers = new ArrayList<RobotInfo>();
+			for(RobotInfo robot : nearbyBots)
+			{
+				if(robot.type == RobotType.SOLDIER && robot.team == myTeam)
+				{
+					nearbyFriendlySoldiers.add(robot);
+				}
+			}
+			
+			//ATTACK
+			if(nearbyFoes.length > 0)
+			{
+				//1. Big zombies
+				//2. the foe with lowest health
+				RobotInfo foeToAttack = null;
+				double lowestHealth = 100000;
+				for(RobotInfo foe : nearbyFoes)
+				{
+					if(foe.type == RobotType.BIGZOMBIE)
+					{
+						foeToAttack = foe;
+						break;
+					}
+					else if(foe.health < lowestHealth)
+					{
+						lowestHealth = foe.health;
+						foeToAttack = foe;
+					}
+				}
+				
+				if(foeToAttack != null)
+				{
+					if(rc.isCoreReady() && rc.isWeaponReady() && rc.canAttackLocation(foeToAttack.location))
+					{
+						rc.attackLocation(foeToAttack.location);
+					}
+				}
+			}
+			
+			//get the average nearby soldier location
+			int numberOfNearbyFriendlySoldiers = nearbyFriendlySoldiers.size();
+			if(numberOfNearbyFriendlySoldiers > 0)
+			{
+				int averagex = 0;
+				int averagey = 0;
+				for(RobotInfo soldier : nearbyFriendlySoldiers)
+				{
+					averagex += soldier.location.x;
+					averagey += soldier.location.y;
+				}
+				averagex /= numberOfNearbyFriendlySoldiers;
+				averagey /= numberOfNearbyFriendlySoldiers;
+				
+				goal = new MapLocation(averagex, averagey);
+			}
+			
+			if(nearbyFoes.length == 0 && goal != null)
+			{
+				moveToLocation(goal);
+			}
+			else
+			{
+				if(rc.getType() == RobotType.TTM)
 				{
 					rc.unpack();
-					isPacked = false;
 				}
-				else if(rc.isCoreReady()) //run away from them!
+			}
+			
+			Clock.yield();
+		}
+	}
+	
+	//move to open adjacent location
+	public static void moveToOpenAdjacentLocation() throws GameActionException
+	{
+		ArrayList<Direction> directions = Utility.arrayListOfDirections();
+		while(directions.size() > 0)
+		{
+			int index = rand.nextInt(directions.size());
+			if(rc.canMove(directions.get(index)) && rc.isCoreReady())
+			{
+				rc.move(directions.get(index));
+			}
+			else
+			{
+				directions.remove(index);
+			}
+		}
+	}
+
+	//move to a location
+	public static void moveToLocation(MapLocation location) throws GameActionException
+	{	
+		if(rc.isCoreReady())
+		{
+			if(rc.getType() == RobotType.TURRET)
+			{
+				rc.pack();
+			}
+
+			MapLocation currentLocation = rc.getLocation();
+
+			//trim the slug trail to size 20
+			slugTrail.add(currentLocation);
+			if(slugTrail.size() > 20)
+			{
+				slugTrail.remove(0);
+			}
+
+			Direction candidateDirection = currentLocation.directionTo(location);
+			MapLocation locationInDirection = currentLocation.add(candidateDirection);
+			double rubbleAtLocation = rc.senseRubble(locationInDirection);
+
+			if(slugTrail.contains(locationInDirection))//if you've just been there
+			{
+				for(int i = 0; i < 8; i++)
 				{
-					//get average loc of hostiles
-					//could also just run away from the closest hostile
-					//neither one of those would have you go up or down if you have enemies directly to
-					//your left and right
-					int n_hostiles = 0;
-					int x_sum = 0;
-					int y_sum = 0;
-					for(RobotInfo robot : foesTooCloseToMe)
+					candidateDirection = candidateDirection.rotateRight();
+					locationInDirection = currentLocation.add(candidateDirection);
+					rubbleAtLocation = rc.senseRubble(locationInDirection);
+
+					if(rc.isCoreReady() && rc.canMove(candidateDirection) && slugTrail.contains(locationInDirection) == false && rubbleAtLocation < GameConstants.RUBBLE_OBSTRUCTION_THRESH)//move there then return
 					{
-						n_hostiles ++;
-						MapLocation robotLoc = robot.location;
-						x_sum += robotLoc.x;
-						y_sum += robotLoc.y;
+						rc.setIndicatorString(0, "Trying to move");
+						rc.move(candidateDirection);
+						return;
 					}
-					int x = (int) ((float)x_sum / n_hostiles + 0.5);
-					int y = (int) ((float)y_sum / n_hostiles + 0.5);
-					MapLocation hostileLoc = new MapLocation(x, y);
 
-					dirToMove = hostileLoc.directionTo(myLoc);
-
-					int timesRotated = 0;
-					boolean done = false;
-					boolean turnLeft = rand.nextBoolean(); //if true keep turning left, if false keep turning right
-
-					while((timesRotated < numDirections) && (! done))
-					{
-						double rubble = rc.senseRubble(myLoc.add(dirToMove));
-						if(rubble > GameConstants.RUBBLE_OBSTRUCTION_THRESH)
-						{
-							if(rubble >= tooMuchRubble) //try another direction
-							{
-								dirToMove = turn(dirToMove, turnLeft);
-								timesRotated ++;
-							}
-							else //clear the rubble
-							{
-								rc.clearRubble(dirToMove);
-								done = true;
-							}
-						}
-						else
-						{
-							if(rc.canMove(dirToMove))
-							{
-								rc.move(dirToMove);
-								done = true;
-								myLoc = rc.getLocation();
-							}
-							else
-							{
-								dirToMove = turn(dirToMove, turnLeft);
-								timesRotated ++;
-							}
-						}
-					}
-					turnsToRunAway --;
 				}
 			}
 			else
 			{
-				//attack any foes sending messages if you can
-				//should save locs of all foes? May get outdated fast
-				if(rc.isWeaponReady())
+				if(rc.isCoreReady() && rc.canMove(candidateDirection) && rubbleAtLocation < GameConstants.RUBBLE_OBSTRUCTION_THRESH)
 				{
-					Signal[] signals = rc.emptySignalQueue();
-					for(Signal signal : signals)
-					{
-						Team signalTeam = signal.getTeam();
-						if(signalTeam == enemyTeam || signalTeam == Team.ZOMBIE)
-						{
-							MapLocation foeLoc = signal.getLocation();
-							if(rc.canAttackLocation(foeLoc))
-							{
-								rc.attackLocation(foeLoc);
-								break;
-							}
-						}
-					}
+					rc.move(candidateDirection);
 				}
-				//maybe some different flow here?
-				//otherwise get foes in your attackRange
-				RobotInfo[] foes = rc.senseHostileRobots(myLoc, RobotPlayer.myType.attackRadiusSquared);
-				
-				/* Code for minHealth way
-				double lowestHealth = 100000;
-				RobotInfo weakestFoe = null;
-				for(RobotInfo foe : foes)
+				else
 				{
-					if(foe.health < lowestHealth)
+					for(int i = 0; i < 8; i++)
 					{
-						weakestFoe = foe;
-						lowestHealth = foe.health;
-					}
-				}
-				if(foes.length > 0 && weakestFoe != null)
-				{
-					myLoc = rc.getLocation();
-					MapLocation foeLoc = weakestFoe.location;
-				*/
-				
-				if(foes.length > 0)
-				{
-					myLoc = rc.getLocation();
-					MapLocation foeLoc = foes[0].location;
-					if(Math.random() < probSignal)
-					{
-						rc.broadcastSignal(foeSignalRadiusSquared);
-					}
-					int meToFoe = myLoc.distanceSquaredTo(foeLoc);
-					if(meToFoe >= GameConstants.TURRET_MINIMUM_RANGE)
-					{
-						if(rc.isWeaponReady())
-						{
-							rc.attackLocation(foeLoc);
-						}
-					}
-					else
-					{
-						turnsToRunAway = maxTurnsToRunAway;
-						rc.pack();
-						isPacked = true;
-						//continue; //might be able to get some running away in
-					}
-				}
+						candidateDirection = candidateDirection.rotateRight();
+						locationInDirection = currentLocation.add(candidateDirection);
+						rubbleAtLocation = rc.senseRubble(locationInDirection);
 
+						if(rc.isCoreReady() && rc.canMove(candidateDirection) && slugTrail.contains(locationInDirection) == false && rubbleAtLocation < GameConstants.RUBBLE_OBSTRUCTION_THRESH)//move there then return
+						{
+							rc.setIndicatorString(0, "Trying to move");
+							rc.move(candidateDirection);
+							return;
+						}
+
+					}
+				}
 			}
-			Clock.yield();
-		}
-	}
-
-	//turnLeft says whether or not to turnLeft
-	public static Direction turn(Direction dir, boolean turnLeft)
-	{
-		if(turnLeft)
-		{
-			return dir.rotateLeft();
-		}
-		else
-		{
-			return dir.rotateRight();
 		}
 	}
 }

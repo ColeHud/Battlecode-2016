@@ -1,20 +1,13 @@
 package team062;
 import battlecode.common.*;
 
-import java.util.*;
-
-//By Joseph Gnehm and Cole Hudson
-//wintermute 1 builds off of things learned from wintermute 0, badplayer, and sillyplayer
-
 public class RobotPlayer 
 {
-	public static RobotType myType;
 	public static RobotController rc;
-	
-	public static void run(RobotController robotController) throws Exception
+	public static void run(RobotController rc) throws Exception
 	{
-		rc = robotController;
-		myType = rc.getType();
+		RobotPlayer.rc = rc;
+		RobotType myType = rc.getType();
 		
 		//run methods
         if(myType == RobotType.ARCHON)
@@ -32,6 +25,14 @@ public class RobotPlayer
         else if(myType == RobotType.TURRET)
         {
         	Turret.run();
+        }
+        else if(myType == RobotType.GUARD)
+        {
+        	Guard.run();
+        }
+        else if(myType == RobotType.VIPER)
+        {
+        	Viper.run();
         }
         else
         {

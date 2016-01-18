@@ -22,7 +22,7 @@ public class Soldier
 			Direction.SOUTH, Direction.SOUTH_WEST, Direction.WEST, Direction.NORTH_WEST};
 	public static int numDirections = directions.length;
 
-	public static double probMove = 0.2; //how often to move if can, maybe make lower for protectors?
+	public static double probMove = 0.1; //how often to move if can, maybe make lower for protectors?
 
 	public static int maxMomentum = 0; //how many turns to keep going in a direction, if no guidance to change it
 	//0 because turned off right now
@@ -38,7 +38,7 @@ public class Soldier
 	public static double startTooMuchRubble = 500;
 
 	public static int foeSignalRadiusSquared = 1000; //play around with this some
-	public static double probSignal = 0.1;
+	public static double probSignal = 0.15;
 
 	public static void run() throws GameActionException
 	{
@@ -196,11 +196,101 @@ public class Soldier
 						 }
 						 */
 						
-						if(targetFoe.type == RobotType.BIGZOMBIE && myLoc.distanceSquaredTo(targetFoe.location) <= RobotType.BIGZOMBIE.attackRadiusSquared)
+						//first kiting code below is best
+						//others may be good with tweaking but seems unlikely
+						
+						//kiting in a while loop approach
+						//move until out of foe's attack range, then fire
+						//if your foe has a greater attack range or the same attack range, just attack it
+						if(targetFoe.type.attackRadiusSquared < RobotType.SOLDIER.attackRadiusSquared
+						   && myLoc.distanceSquaredTo(targetFoe.location) <= targetFoe.type.attackRadiusSquared)
 						{
-							//move away from it
-							dirToMove = targetFoe.location.directionTo(myLoc);
-							simpleTryMove(dirToMove);
+							Direction away = targetFoe.location.directionTo(myLoc);
+							simpleTryMove(away);
+							boolean enemyStillThere = true;
+							while(myLoc.distanceSquaredTo(targetFoe.location) <= targetFoe.type.attackRadiusSquared)
+							{
+								try
+								{
+									targetFoe = rc.senseRobot(targetFoe.ID);
+									away = targetFoe.location.directionTo(myLoc);
+									simpleTryMove(away);
+								}
+								catch (Exception GameActionException)
+								{
+									enemyStillThere = false;
+									simpleTryMove(away.opposite());
+									break;
+								}
+								myLoc = rc.getLocation();
+
+							}
+							if(enemyStillThere && rc.isWeaponReady() && rc.canAttackLocation(targetFoe.location))
+							{
+								rc.attackLocation(targetFoe.location);
+							}
+						}
+						
+						/*//stay as far away as you can as long as you can still attack any foes that can attack you
+						//kiting in a while loop approach
+						if(targetFoe.type.canAttack())
+						{
+							if(RobotPlayer.myType.attackRadiusSquared - myLoc.distanceSquaredTo(targetFoe.location) > 100)
+							{
+								System.out.println("too close");
+								Direction away = targetFoe.location.directionTo(myLoc);
+								simpleTryMove(away);
+								boolean enemyStillThere = true;
+								while(RobotPlayer.myType.attackRadiusSquared - myLoc.distanceSquaredTo(targetFoe.location) > 100)
+								{
+									try
+									{
+										targetFoe = rc.senseRobot(targetFoe.ID);
+										away = targetFoe.location.directionTo(myLoc);
+										simpleTryMove(away);
+									}
+									catch (Exception GameActionException)
+									{
+										enemyStillThere = false;
+										simpleTryMove(away.opposite());
+										break;
+									}
+									myLoc = rc.getLocation();
+
+								}
+								if(enemyStillThere && rc.isWeaponReady() && rc.canAttackLocation(targetFoe.location))
+								{
+									rc.attackLocation(targetFoe.location);
+								}
+							}
+							else
+							{
+								if(rc.isWeaponReady() && rc.canAttackLocation(targetFoe.location))
+								{
+									rc.attackLocation(targetFoe.location);
+								}
+							}
+						}
+						*/
+						
+						/*//first sort of kiting
+						//move until out of foe's attack range, then fire
+						//if your foe has a greater attack range or the same attack range, just attack it
+						if(targetFoe.type.attackRadiusSquared < RobotPlayer.myType.attackRadiusSquared
+					       && myLoc.distanceSquaredTo(targetFoe.location) <= targetFoe.type.attackRadiusSquared)
+						{
+							simpleTryMove(targetFoe.location.directionTo(myLoc));
+						}
+						*/
+						
+						/*//second sort of kiting
+						//kite, move away from foe, then try to fire, then move away, try to fire, move away
+						//when out of foe's attack range, just fire
+						//if your foe has a greater attack range or the same attack range, just attack it
+						if(targetFoe.type.attackRadiusSquared < RobotPlayer.myType.attackRadiusSquared
+						&& myLoc.distanceSquaredTo(targetFoe.location) <= targetFoe.type.attackRadiusSquared)
+						{
+							simpleTryMove(targetFoe.location.directionTo(myLoc));
 							if(rc.isWeaponReady())
 							{
 								try
@@ -213,18 +303,36 @@ public class Soldier
 								}
 							}
 						}
+						*/
+						
+						/*//just kites for BIGZOMBIE
+						if(targetFoe.type == RobotType.BIGZOMBIE && myLoc.distanceSquaredTo(targetFoe.location) <= RobotType.BIGZOMBIE.attackRadiusSquared)
+						{
+							//move away from it
+							simpleTryMove(targetFoe.location.directionTo(myLoc));
+							if(rc.isWeaponReady())
+							{
+								try
+								{
+									rc.attackLocation(rc.senseRobot(targetFoe.ID).location);
+								}
+								catch (Exception GameActionException)
+								{
+									//nothing
+								}
+							}
+						}
+						*/
+						
+						//if using any kiting, free up this section, else comment out
 						else
 						{
-							if(rc.canAttackLocation(targetFoe.location))
+							if(rc.isWeaponReady() && rc.canAttackLocation(targetFoe.location))
 							{
 								rc.attackLocation(targetFoe.location);
 							}
-							else
-							{
-								System.out.println("Wasn't close enough"); //weird, why does this happen?
-							}
 						}
-						
+												
 						if(Math.random() < probSignal)
 						{
 							rc.broadcastSignal(foeSignalRadiusSquared);
@@ -420,6 +528,7 @@ public class Soldier
 		if(rc.isCoreReady() && rc.canMove(dirToMove))
 		{
 			rc.move(dirToMove);
+			Clock.yield();
 		}
 	}
 

@@ -1,20 +1,22 @@
 package team062;
+import java.util.ArrayList;
+
 import battlecode.common.*;
-import java.util.*;
 
 public class Utility 
 {
-	//message ints
-	public static final int ZOMBIE_DEN_CODE = 84031; //not used
-	public static final int ENEMY_ARCHON_CODE = 42650; //not used
-	public static final int PARTS_CODE = 94572;
-	public static final int SOLDIER_HELP_CODE = 97525;
+	//constants 
+	public static final int MINIMUM_TIME_TO_TURTLE = 100;
+
+	//codes
+	public static final int STRATEGY_CODE = 77525;
+	public static final int ARCHON_IN_TROUBLE = 062666;
+	public static final String SCOUT_TURRET_VISION_PREFACE_CODE = "17";
+	public static final int CLUMP_OF_FOES_CODE = 54031;
+	public static final int ENEMY_TURTLE = 32856;
+	public static final int ZOMBIE_DEN = 23666;
 	
-	public static final double PERCENTAGE_TURRETS = 0;
-	public static final double PERCENTAGE_SOLDIERS = 0.97;
-	public static final double PERCENTAGE_SCOUTS = 1 - PERCENTAGE_TURRETS - PERCENTAGE_SOLDIERS;
-	public static final int MAX_FOES_TO_BUILD = 4;
-	
+
 	//get an arraylist of directions
 	public static ArrayList<Direction> arrayListOfDirections()
 	{
@@ -25,16 +27,5 @@ public class Utility
 			directions.add(dir);
 		}
 		return directions;
-	}
-	
-	//maplocation array to arraylist
-	public static ArrayList<MapLocation> arrayToArrayList(MapLocation[] locations)
-	{
-		ArrayList<MapLocation> returnArrayList = new ArrayList<MapLocation>();
-		for(MapLocation location : locations)
-		{
-			returnArrayList.add(location);
-		}
-		return returnArrayList;
 	}
 }
