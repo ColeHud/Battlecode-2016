@@ -52,9 +52,9 @@ public class Soldier
 
 		MapLocation goalLoc = null;
 		Direction dirToMove = Direction.NONE;
-		//how many turns to spend trying to get to a goal location
+		//how many rounds to spend trying to get to a goal location
 		//below value is reasonable but never used, depends on initial distance to goal
-		int turnsLeft = 50;
+		int roundsLeft = 50;
 
 		//whether the soldier turned some in getting to a location
 		//means will have to recompute the direction to the goal
@@ -67,7 +67,7 @@ public class Soldier
 		//ENTERING THE ACTUAL CODE
 
 		//move a little away from your maker archon, to give it space
-		int movesAwayFromArchon = 2;
+		int movesAwayFromArchon = 2; //could make this increase as more soldiers made?
 		RobotInfo[] nearbyRobots = rc.senseNearbyRobots(movesAwayFromArchon*movesAwayFromArchon);
 		for (RobotInfo robot : nearbyRobots)
 		{
@@ -130,6 +130,7 @@ public class Soldier
 		while(true)
 		{
 			//try to attack weakest foe, if successful then finish turn
+			//could use more fancy way to choose foe, wouldn't be too much more $$$
 			if(anyFoesToAttack)
 			{
 				if(rc.isWeaponReady()) //maybe different flow here?
@@ -148,7 +149,7 @@ public class Soldier
 								//should send out a huge signal?
 								break;
 							}
-							if(lowestHealth == 0 || foe.health < lowestHealth)
+							if((lowestHealth == 0) || (foe.health < lowestHealth))
 							{
 								targetFoe = foe;
 								lowestHealth = foe.health;
@@ -186,8 +187,9 @@ public class Soldier
 							{
 								try
 								{
+									//should be done after all this?
 									targetFoe = rc.senseRobot(targetFoe.ID);
-									dirToMove = targetFoe.location.directionTo(myLoc);
+									dirToMove = targetFoe.location.directionTo(myLoc); //away from foe
 
 									int timesRotated = 0;
 									boolean done = false; //whether or not has moved or cleared some rubble
@@ -230,8 +232,8 @@ public class Soldier
 										{
 											rc.move(dirToMove);
 											myLoc = rc.getLocation();
+											Clock.yield();
 										}
-										Clock.yield();
 									}
 									else
 									{
@@ -239,6 +241,9 @@ public class Soldier
 										//or give up as lost? (what we do right now)
 										break;
 									}
+
+									//maybe should remove to let go back, but stops endless loop?
+									break;
 								}
 							}
 
@@ -256,6 +261,7 @@ public class Soldier
 								catch (Exception GameActionException)
 								{
 									//nothing
+									//continue?
 								}
 							}
 						}
@@ -272,12 +278,16 @@ public class Soldier
 					{
 						anyFoesToAttack = false;
 						RobotInfo[] foesYouCanOnlySee = rc.senseHostileRobots(myLoc, RobotPlayer.myType.sensorRadiusSquared);
-						//could do min thing here too, but $$$?
+
+						//could do min thing here too, or ID thing, but $$$?
 						if(foesYouCanOnlySee.length > 0)
 						{
-							goalLoc = foesYouCanOnlySee[0].location;
+							RobotInfo targetFoe = foesYouCanOnlySee[0];
+							goalLoc = targetFoe.location;
+							roundsLeft = myLoc.distanceSquaredTo(targetFoe.location);
 						}
-						continue;
+
+						continue; //will make it follow enemy that it sees
 					}
 				}
 			}
@@ -285,6 +295,8 @@ public class Soldier
 			{
 				if(goalLoc == null)
 				{
+					//should choose latest signal?
+
 					//follow signal closest to you
 					Signal[] signals = rc.emptySignalQueue();
 					MapLocation chosenSignalLoc = null;
@@ -311,7 +323,7 @@ public class Soldier
 					{
 						goalLoc = chosenSignalLoc;
 						dirToMove =  myLoc.directionTo(goalLoc);
-						turnsLeft = (int) smallestCloseness; //not sure what would be better
+						roundsLeft = (int) smallestCloseness; //how many rounds to pursue goal for, not sure what would be better
 						continue;
 					}
 
@@ -335,7 +347,7 @@ public class Soldier
 					{
 						goalLoc = chosenSignal.getLocation();
 						dirToMove =  myLoc.directionTo(goalLoc);
-						turnsLeft = myLoc.distanceSquaredTo(goalLoc); //not sure what would be better
+						roundsLeft = myLoc.distanceSquaredTo(goalLoc); //not sure what would be better
 						continue;
 					}
 					 */
@@ -344,7 +356,7 @@ public class Soldier
 				{
 					if(rc.isCoreReady())
 					{
-						if((myLoc.distanceSquaredTo(goalLoc) <= closeEnoughSquared) || (turnsLeft <= 0)) //done
+						if((myLoc.distanceSquaredTo(goalLoc) <= closeEnoughSquared) || (roundsLeft <= 0)) //done
 						{
 							goalLoc = null;
 							dirToMove = Direction.NONE;
@@ -384,7 +396,7 @@ public class Soldier
 									if(rc.canMove(dirToMove))
 									{
 										rc.move(dirToMove);
-										turnsLeft --;
+										roundsLeft --;
 										done = true;
 										myLoc = rc.getLocation();
 									}
@@ -405,6 +417,7 @@ public class Soldier
 		}
 	}
 
+	//never used?
 	public static void simpleTryMove(Direction dirToMove) throws GameActionException
 	{
 		if(rc.isCoreReady() && rc.canMove(dirToMove))
