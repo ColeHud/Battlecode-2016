@@ -7,119 +7,165 @@ public class Scout
 {
 	public static RobotController rc;
 	public static Random rand;
-	
-	//for pathing
+	public static RobotInfo turretToGiveVision = null;
 	public static ArrayList<MapLocation> slugTrail = new ArrayList<MapLocation>();
-	
-	public static MapLocation[] enemyArchonsInitialPosition;
-	
-	//scouting
-	public static MapLocation pivotLocation = null;
-	public static Direction directionToMove = null;
-	
-	//broadcasting
-	public static int broadcastsThisTurn = 0;
-	public static MapLocation spawnLocation;
 
 	public static void run() throws GameActionException
 	{
 		rc = RobotPlayer.rc;
 		rand = new Random(rc.getID());
-		
-		enemyArchonsInitialPosition = rc.getInitialArchonLocations(rc.getTeam().opponent());
-		
-		pivotLocation = rc.getLocation();
-		spawnLocation = pivotLocation;
 		while(true)
 		{
-			broadcastsThisTurn = 0;
-			//signal
-			RobotInfo[] nearbyFoes = rc.senseHostileRobots(rc.getLocation(), RobotType.SCOUT.sensorRadiusSquared);
-			if(nearbyFoes.length > 5)
+			turretToGiveVision = null;
+			
+			//find all the nearest turrets
+			RobotInfo[] nearbyFriends = rc.senseNearbyRobots(RobotType.SCOUT.sensorRadiusSquared, rc.getTeam());
+			ArrayList<RobotInfo> nearbyTurrets = new ArrayList<RobotInfo>();
+			for(RobotInfo friend : nearbyFriends)
 			{
-				broadcast(Utility.CLUMP_OF_FOES_CODE, Utility.CLUMP_OF_FOES_CODE);
-			}
-			int numberOfEnemyTurrets = 0;
-			for(RobotInfo foe : nearbyFoes)
-			{
-				if(foe.type == RobotType.TURRET || foe.type == RobotType.TTM)
+				if(friend.type == RobotType.TURRET || friend.type == RobotType.TTM)
 				{
-					numberOfEnemyTurrets++;
-				}
-				if(foe.type == RobotType.ZOMBIEDEN)
-				{
-					broadcast(Utility.ZOMBIE_DEN, Utility.ZOMBIE_DEN);
+					nearbyTurrets.add(friend);
 				}
 			}
-			if(numberOfEnemyTurrets > 3)
-			{
-				broadcast(Utility.ENEMY_TURTLE, Utility.ENEMY_TURTLE);
-			}
 			
-			//initial case
-			if(directionToMove == null)
+			//move to the nearest one if it exists
+			if(nearbyTurrets.size() > 0)
 			{
-				//choose a random direction to move in
-				Direction[] possibleDirections = Direction.values();
-				directionToMove = possibleDirections[rand.nextInt(possibleDirections.length)];
-			}
-			
-			//every other case
-			if(rc.canMove(directionToMove))
-			{
-				//if there are foes nearby, choose another direction
-				/*
-				RobotInfo[] foes = rc.senseHostileRobots(rc.getLocation(), RobotType.SCOUT.sensorRadiusSquared);
-				if(foes.length > 0)
+				MapLocation currentLocation = rc.getLocation();
+				RobotInfo closestTurret = null;
+				int shortestDistance = 10000;
+				for(RobotInfo turret : nearbyTurrets)
 				{
-					//set the direction to move to the enemy so you move away from it
-					directionToMove = rc.getLocation().directionTo(foes[0].location);
-					getNewDirection();
-					if(rc.canMove(directionToMove) && rc.isCoreReady())
+					if(currentLocation.distanceSquaredTo(turret.location) < shortestDistance)
 					{
-						rc.move(directionToMove);
+						closestTurret = turret;
 					}
 				}
-				*/
-				/*else */if(rc.isCoreReady())//if there aren't enemies nearby, move int the current direction
+				
+				
+				if(closestTurret != null)//if there is a close turret
 				{
-					rc.move(directionToMove);
+					if(shortestDistance <= 4)
+					{
+						//broadcast
+						turretToGiveVision = closestTurret;
+						broadcastEnemyLocationForNearbyTurret();
+					}
+					else
+					{
+						moveToLocation(closestTurret.location);
+					}
+				}
+			}
+			else//if there are no turrets nearby, go to the nearest friend
+			{
+				MapLocation currentLocation = rc.getLocation();
+				int distanceToClosestFriend = 100000;
+				RobotInfo closestFriend = null;
+				
+				for(RobotInfo friend : nearbyFriends)
+				{
+					int distance = currentLocation.distanceSquaredTo(friend.location);
+					if(distance < distanceToClosestFriend)
+					{
+						distanceToClosestFriend = distance;
+						closestFriend = friend;
+					}
+				}
+				
+				if(closestFriend != null)
+				{
+					moveToLocation(closestFriend.location);
+				}
+			}
+
+
+			Clock.yield();
+		}
+	}
+
+	//broadcast an enemy location
+	public static void broadcastEnemyLocationForNearbyTurret() throws GameActionException
+	{
+		//broadcast enemy locations to nearby turrets
+		RobotInfo[] foes = rc.senseHostileRobots(rc.getLocation(), RobotType.SCOUT.sensorRadiusSquared);
+		if(foes.length > 0 && turretToGiveVision != null)
+		{
+			for(RobotInfo foe : foes)
+			{
+				int distance = foe.location.distanceSquaredTo(turretToGiveVision.location);
+				if(distance > 24 && distance <= 48)
+				{
+					int xToBroadcast = Integer.parseInt((Utility.SCOUT_TURRET_VISION_PREFACE_CODE + foe.location.x));
+					int yToBroadcast = Integer.parseInt((Utility.SCOUT_TURRET_VISION_PREFACE_CODE + foe.location.y));
+					rc.broadcastMessageSignal(xToBroadcast, yToBroadcast, 4);
+					return;
+				}
+			}
+		}
+	}
+
+	//move to a location
+	public static void moveToLocation(MapLocation location) throws GameActionException
+	{
+		if(rc.isCoreReady())
+		{
+			MapLocation currentLocation = rc.getLocation();
+
+			//trim the slug trail to size 20
+			slugTrail.add(currentLocation);
+			if(slugTrail.size() > 20)
+			{
+				slugTrail.remove(0);
+			}
+
+			Direction candidateDirection = currentLocation.directionTo(location);
+			MapLocation locationInDirection = currentLocation.add(candidateDirection);
+			double rubbleAtLocation = rc.senseRubble(locationInDirection);
+
+			if(slugTrail.contains(locationInDirection))//if you've just been there
+			{
+				for(int i = 0; i < 8; i++)
+				{
+					candidateDirection = candidateDirection.rotateRight();
+					locationInDirection = currentLocation.add(candidateDirection);
+					rubbleAtLocation = rc.senseRubble(locationInDirection);
+
+					if(rc.canMove(candidateDirection) && slugTrail.contains(locationInDirection) == false && rubbleAtLocation < GameConstants.RUBBLE_OBSTRUCTION_THRESH)//move there then return
+					{
+						rc.setIndicatorString(0, "Trying to move");
+						rc.move(candidateDirection);
+						return;
+					}
+
 				}
 			}
 			else
 			{
-				//if you can't move in the current direction, find a new one
-				getNewDirection();
-			}
+				if(rc.canMove(candidateDirection) && rubbleAtLocation < GameConstants.RUBBLE_OBSTRUCTION_THRESH)
+				{
+					rc.move(candidateDirection);
+				}
+				else
+				{
+					for(int i = 0; i < 8; i++)
+					{
+						candidateDirection = candidateDirection.rotateRight();
+						locationInDirection = currentLocation.add(candidateDirection);
+						rubbleAtLocation = rc.senseRubble(locationInDirection);
 
-			Clock.yield();
-		}
-	}	
-	
-	//broadcast
-	public static void broadcast(int message1, int message2) throws GameActionException
-	{
-		if(broadcastsThisTurn < 20)
-		{
-			//calculate the radius to broadcast
-			int radius = rc.getLocation().distanceSquaredTo(spawnLocation);
-			
-			rc.broadcastMessageSignal(message1, message2, radius);
+						if(rc.canMove(candidateDirection) && slugTrail.contains(locationInDirection) == false && rubbleAtLocation < GameConstants.RUBBLE_OBSTRUCTION_THRESH)//move there then return
+						{
+							rc.setIndicatorString(0, "Trying to move");
+							rc.move(candidateDirection);
+							return;
+						}
+
+					}
+				}
+			}
 		}
 	}
-	
-	//get a new direction to move
-	public static void getNewDirection()
-	{
-		pivotLocation = rc.getLocation();
-		
-		//get a new direction to go
-		ArrayList<Direction> possibleDirections = Utility.arrayListOfDirections();
-		possibleDirections.remove(directionToMove);
-		possibleDirections.remove(directionToMove.rotateRight());
-		possibleDirections.remove(directionToMove.rotateLeft());
-		possibleDirections.remove(directionToMove.opposite());
-		
-		directionToMove = possibleDirections.get(rand.nextInt(possibleDirections.size()));
-	}
+
 }

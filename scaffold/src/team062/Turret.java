@@ -23,58 +23,66 @@ public class Turret
 		myTeam = rc.getTeam();
 		while(true)
 		{	
-			//read signals
-			Signal[] signals = rc.emptySignalQueue();
-			for(Signal signal : signals)
-			{
-				int[] message = signal.getMessage();
-				if(message != null)
-				{
-					if(message[0] == Utility.ENEMY_TURTLE)
-					{
-						goal = signal.getLocation();
-					}
-				}
-			}
-			
 			//sense the robots around you
 			RobotInfo[] nearbyBots = rc.senseNearbyRobots();
-			RobotInfo[] nearbyFoes = rc.senseHostileRobots(rc.getLocation(), RobotType.TURRET.sensorRadiusSquared);
 			ArrayList<RobotInfo> nearbyFriendlySoldiers = new ArrayList<RobotInfo>();
+			ArrayList<MapLocation> nearbyFoes = new ArrayList<MapLocation>();
 			for(RobotInfo robot : nearbyBots)
 			{
 				if(robot.type == RobotType.SOLDIER && robot.team == myTeam)
 				{
 					nearbyFriendlySoldiers.add(robot);
 				}
+				
+				if(robot.team != myTeam)
+				{
+					nearbyFoes.add(robot.location);
+				}
+			}
+			
+			//add bots from signals from scouts
+			Signal[] signals = rc.emptySignalQueue();
+			for(Signal signal : signals)
+			{
+				int[] message = signal.getMessage();
+				if(message != null)
+				{
+					String message0 = message[0] + "";
+					String message1 = message[1] + "";
+					
+					if(message0.contains(Utility.SCOUT_TURRET_VISION_PREFACE_CODE))
+					{
+						int message0int = Integer.parseInt(message0.substring(2));
+						int message1int = Integer.parseInt(message1.substring(2));
+						
+						MapLocation foeLocation = new MapLocation(message0int, message1int);
+						nearbyFoes.add(foeLocation);
+					}
+				}
 			}
 			
 			//ATTACK
-			if(nearbyFoes.length > 0)
+			if(nearbyFoes.size() > 0)
 			{
-				//1. Big zombies
-				//2. the foe with lowest health
-				RobotInfo foeToAttack = null;
-				double lowestHealth = 100000;
-				for(RobotInfo foe : nearbyFoes)
+				MapLocation currentLocation = rc.getLocation();
+				MapLocation locationToAttack = null;
+				int farthestDistance = 0;
+				
+				for(MapLocation foe : nearbyFoes)
 				{
-					if(foe.type == RobotType.BIGZOMBIE)
+					int distance = currentLocation.distanceSquaredTo(foe);
+					if(distance > farthestDistance)
 					{
-						foeToAttack = foe;
-						break;
-					}
-					else if(foe.health < lowestHealth)
-					{
-						lowestHealth = foe.health;
-						foeToAttack = foe;
+						farthestDistance = distance;
+						locationToAttack = foe;
 					}
 				}
 				
-				if(foeToAttack != null)
+				if(locationToAttack != null)
 				{
-					if(rc.isCoreReady() && rc.isWeaponReady() && rc.canAttackLocation(foeToAttack.location))
+					if(rc.isCoreReady() && rc.isWeaponReady() && rc.canAttackLocation(locationToAttack))
 					{
-						rc.attackLocation(foeToAttack.location);
+						rc.attackLocation(locationToAttack);
 					}
 				}
 			}
@@ -96,7 +104,7 @@ public class Turret
 				goal = new MapLocation(averagex, averagey);
 			}
 			
-			if(nearbyFoes.length == 0 && goal != null)
+			if(nearbyFoes.size() == 0 && goal != null)
 			{
 				moveToLocation(goal);
 			}

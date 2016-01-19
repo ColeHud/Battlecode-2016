@@ -1,5 +1,6 @@
 package team062;
 import battlecode.common.*;
+
 import java.util.*;
 
 public class Archon 
@@ -10,21 +11,21 @@ public class Archon
 
 	//slug trail for pathing
 	public static ArrayList<MapLocation> slugTrail = new ArrayList<MapLocation>(20);
-	
+
 	//build order
 	//public static RobotType[] buildOrder = {RobotType.SCOUT, RobotType.SOLDIER, RobotType.GUARD, RobotType.SOLDIER, RobotType.TURRET, RobotType.SOLDIER, 
-		//RobotType.SOLDIER, RobotType.TURRET, RobotType.GUARD, RobotType.VIPER};
-	public static RobotType[] buildOrder = {RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.TURRET, RobotType.TURRET, RobotType.SOLDIER};
+	//RobotType.SOLDIER, RobotType.TURRET, RobotType.GUARD, RobotType.VIPER};
+	public static RobotType[] buildOrder = {RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SCOUT, RobotType.TURRET, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER};
 	public static int currentBuildNumber = 0;
 	public static int numberOfInitialArchons;
 	public static Random rand;
-	
+
 	//goals
 	public static MapLocation goal = null;
 	public static boolean goalIsNeutralBot = false;
 	public static int roundsGoingAfterGoal = 0;
 	public static ArrayList<MapLocation> goalsToAvoid = new ArrayList<MapLocation>();
-	
+
 
 	public static void run() throws GameActionException
 	{
@@ -45,7 +46,7 @@ public class Archon
 					}
 					goal = null;
 				}
-				
+
 				if(rc.getLocation().equals(goal))
 				{
 					goal = null;
@@ -56,11 +57,20 @@ public class Archon
 					goal = null;
 				}
 			}
-			
+			rc.setIndicatorString(0, "NOT");
+
 			//EVASION CODE
 			RobotInfo[] foes = rc.senseHostileRobots(rc.getLocation(), RobotType.ARCHON.sensorRadiusSquared);
-			int numberOfFoesNearAttackRadius = 0;
+			RobotInfo[] friends = rc.senseNearbyRobots(RobotType.ARCHON.sensorRadiusSquared, rc.getTeam());
+			
 			if(foes.length > 0)
+			{
+				rc.broadcastSignal(25);
+			}
+
+			//evade if there are at least 6 more foes than friends
+			int numberOfFoesNearAttackRadius = 0;
+			if(foes.length > friends.length)
 			{
 				for(RobotInfo foe : foes)
 				{
@@ -68,56 +78,112 @@ public class Archon
 					MapLocation foeLocation = foe.location;
 					if(currentLocation.distanceSquaredTo(foeLocation) > foe.type.attackRadiusSquared - 1)
 					{
-						moveToLocation(findSaferLocation());//don't want to do anything else if you're evading
+						//moveToLocation(findSaferLocation(foes));//don't want to do anything else if you're evading
+						rc.setIndicatorString(0, "Running away");
+						moveToLocation(findSaferLocation());
 						break;
 					}
 				}
 			}
-			else//if there are no enemies nearby, then try to move to the goal
+			else//if there are no enemies nearby, then try to move to the goal or build
 			{
-				
-			}
-			
-			//BUILDING CODE
-			double chancesOfBuilding = 1.0/(double)numberOfInitialArchons;
-			double random = rand.nextFloat();
-			if(random <= chancesOfBuilding && canBuildSomething())//you get to build! :)
-			{
-				rc.setIndicatorString(0, "Building");
-				buildStrategicRobot();
-				continue;
-			}
-			else//if you can't build anything, go look for some parts/move to the current goal
-			{
-				if(goal != null)
+				//BUILDING CODE
+				double chancesOfBuilding = 1.0/(double)numberOfInitialArchons;
+				double random = rand.nextFloat();
+				if(random <= chancesOfBuilding && canBuildSomething())//you get to build! :)
 				{
-					rc.setIndicatorString(0, "Moving");
-					moveToLocation(goal);
+					rc.setIndicatorString(0, "Building");
+					buildStrategicRobot();
+					continue;
 				}
-				else
+				else//if you can't build anything, go look for some parts/move to the current goal
 				{
-					rc.setIndicatorString(0, "Finding new parts or neutral bots");
-					//GO ACTIVATE NEUTRAL BOTS
-					RobotInfo[] neutralBots = rc.senseNearbyRobots(RobotType.ARCHON.sensorRadiusSquared, Team.NEUTRAL);
-					if(neutralBots.length > 0)
+					if(goal != null)
 					{
-						goal = neutralBots[0].location;
-						goalIsNeutralBot = true;
+						rc.setIndicatorString(0, "Moving");
+						moveToLocation(goal);
 					}
 					else
 					{
-						findNearbyPartsAndSetGoal();
+						rc.setIndicatorString(0, "Finding new parts or neutral bots");
+						//GO ACTIVATE NEUTRAL BOTS
+						RobotInfo[] neutralBots = rc.senseNearbyRobots(RobotType.ARCHON.sensorRadiusSquared, Team.NEUTRAL);
+						if(neutralBots.length > 0)
+						{
+							goal = neutralBots[0].location;
+							goalIsNeutralBot = true;
+						}
+						else
+						{
+							findNearbyPartsAndSetGoal();
+						}
 					}
 				}
 			}
-			
-			
-			
+
+
+
 
 			Clock.yield();
 		}
 	}
-	
+
+	//evade nearby foes
+	public static void evadeNearbyFoes(RobotInfo[] foes) throws GameActionException
+	{
+		MapLocation currentLocation = rc.getLocation();
+		ArrayList<Direction> directions = Utility.arrayListOfDirections();
+
+		//get the average direction to them
+		int averageDirection = 0;
+		for(RobotInfo foe : foes)
+		{
+			averageDirection += directions.indexOf(currentLocation.directionTo(foe.location));
+		}
+		if(foes.length > 0)
+		{
+			rc.broadcastSignal(25);
+			averageDirection /= foes.length;
+			Direction directionToEnemies = directions.get(averageDirection);
+
+			Direction averageDirectionAwayFromFoes = directionToEnemies.opposite();
+			
+			if(rc.isCoreReady())
+			{
+				if(rc.canMove(averageDirectionAwayFromFoes))
+				{
+					rc.move(averageDirectionAwayFromFoes);
+				}
+				else//your core is ready, but it seems like that direction is blocked
+				{
+					//try the other directions starting with that direction
+					Direction rotatedRight = averageDirectionAwayFromFoes.rotateRight();
+					Direction rotatedLeft = averageDirectionAwayFromFoes.rotateLeft();
+					int tries = 0;
+
+					//only go one loop around
+					while(tries < 4)
+					{
+						if(rc.canMove(rotatedRight))
+						{
+							rc.move(rotatedRight);
+							return;
+						}
+						else if(rc.canMove(rotatedLeft))
+						{
+							rc.move(rotatedLeft);
+							return;
+						}
+						else
+						{
+							tries++;
+						}
+					}
+				}
+			}
+		}
+	}
+
 	//find nearby parts and make that the new goal
 	public static void findNearbyPartsAndSetGoal()
 	{
@@ -150,7 +216,6 @@ public class Archon
 	{
 		MapLocation currentLocation = rc.getLocation();
 		ArrayList<Direction> directions = Utility.arrayListOfDirections();
-
 
 		//find if foes are within attack range
 		RobotInfo[] foes = rc.senseHostileRobots(rc.getLocation(), RobotType.SCOUT.sensorRadiusSquared);
@@ -242,7 +307,7 @@ public class Archon
 			return false;
 		}
 	}
-	
+
 	//move to a location
 	public static void moveToLocation(MapLocation location) throws GameActionException
 	{
