@@ -62,6 +62,11 @@ public class Archon
 			//EVASION CODE
 			RobotInfo[] foes = rc.senseHostileRobots(rc.getLocation(), RobotType.ARCHON.sensorRadiusSquared);
 			RobotInfo[] friends = rc.senseNearbyRobots(RobotType.ARCHON.sensorRadiusSquared, rc.getTeam());
+			
+			if(foes.length > 0)
+			{
+				rc.broadcastSignal(25);
+			}
 
 			//evade if there are at least 6 more foes than friends
 			int numberOfFoesNearAttackRadius = 0;
@@ -75,7 +80,7 @@ public class Archon
 					{
 						//moveToLocation(findSaferLocation(foes));//don't want to do anything else if you're evading
 						rc.setIndicatorString(0, "Running away");
-						evadeNearbyFoes(foes);
+						moveToLocation(findSaferLocation());
 						break;
 					}
 				}
@@ -137,6 +142,7 @@ public class Archon
 		}
 		if(foes.length > 0)
 		{
+			rc.broadcastSignal(25);
 			averageDirection /= foes.length;
 			Direction directionToEnemies = directions.get(averageDirection);
 
