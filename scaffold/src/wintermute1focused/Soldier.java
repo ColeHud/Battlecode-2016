@@ -67,7 +67,7 @@ public class Soldier
 		//ENTERING THE ACTUAL CODE
 
 		//move a little away from your maker archon, to give it space
-		int movesAwayFromArchon = 2; //could make this increase as more soldiers made?
+		int movesAwayFromArchon = 3; //could make this increase as more soldiers made?
 		RobotInfo[] nearbyRobots = rc.senseNearbyRobots(movesAwayFromArchon*movesAwayFromArchon);
 		for (RobotInfo robot : nearbyRobots)
 		{
