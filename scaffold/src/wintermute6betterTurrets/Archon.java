@@ -15,7 +15,7 @@ public class Archon
 	//build order
 	//public static RobotType[] buildOrder = {RobotType.SCOUT, RobotType.SOLDIER, RobotType.GUARD, RobotType.SOLDIER, RobotType.TURRET, RobotType.SOLDIER, 
 	//RobotType.SOLDIER, RobotType.TURRET, RobotType.GUARD, RobotType.VIPER};
-	public static RobotType[] buildOrder = {RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.TURRET, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER};
+	public static RobotType[] buildOrder = {RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SCOUT, RobotType.TURRET, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER};
 	public static int currentBuildNumber = 0;
 	public static int numberOfInitialArchons;
 	public static Random rand;
@@ -62,6 +62,11 @@ public class Archon
 			//EVASION CODE
 			RobotInfo[] foes = rc.senseHostileRobots(rc.getLocation(), RobotType.ARCHON.sensorRadiusSquared);
 			RobotInfo[] friends = rc.senseNearbyRobots(RobotType.ARCHON.sensorRadiusSquared, rc.getTeam());
+			
+			if(foes.length > 0)
+			{
+				rc.broadcastSignal(25);
+			}
 
 			//evade if there are at least 6 more foes than friends
 			int numberOfFoesNearAttackRadius = 0;
@@ -75,7 +80,7 @@ public class Archon
 					{
 						//moveToLocation(findSaferLocation(foes));//don't want to do anything else if you're evading
 						rc.setIndicatorString(0, "Running away");
-						evadeNearbyFoes(foes);
+						moveToLocation(findSaferLocation());
 						break;
 					}
 				}
@@ -129,18 +134,7 @@ public class Archon
 		MapLocation currentLocation = rc.getLocation();
 		ArrayList<Direction> directions = Utility.arrayListOfDirections();
 
-//		//get the average direction to the enemies
-//		double averageDirection = 0;
-//		for(RobotInfo foe : foes)
-//		{
-//			averageDirection += directions.indexOf(currentLocation.directionTo(foe.location));
-//		}
-//		averageDirection /= (double)directions.size();
-//
-//		Direction averageDirectionAwayFromFoes = directions.get((int)averageDirection).opposite();
-
 		//get the average direction to them
-		//ArrayList<Direction> listOfDirections = Utility.arrayListOfDirections();
 		int averageDirection = 0;
 		for(RobotInfo foe : foes)
 		{
@@ -148,6 +142,7 @@ public class Archon
 		}
 		if(foes.length > 0)
 		{
+			rc.broadcastSignal(25);
 			averageDirection /= foes.length;
 			Direction directionToEnemies = directions.get(averageDirection);
 
