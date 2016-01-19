@@ -15,7 +15,7 @@ public class Archon
 	//build order
 	//public static RobotType[] buildOrder = {RobotType.SCOUT, RobotType.SOLDIER, RobotType.GUARD, RobotType.SOLDIER, RobotType.TURRET, RobotType.SOLDIER, 
 	//RobotType.SOLDIER, RobotType.TURRET, RobotType.GUARD, RobotType.VIPER};
-	public static RobotType[] buildOrder = {RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.TURRET, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER};
+	public static RobotType[] buildOrder = {RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SCOUT, RobotType.TURRET, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER};
 	public static int currentBuildNumber = 0;
 	public static int numberOfInitialArchons;
 	public static Random rand;
@@ -129,18 +129,7 @@ public class Archon
 		MapLocation currentLocation = rc.getLocation();
 		ArrayList<Direction> directions = Utility.arrayListOfDirections();
 
-//		//get the average direction to the enemies
-//		double averageDirection = 0;
-//		for(RobotInfo foe : foes)
-//		{
-//			averageDirection += directions.indexOf(currentLocation.directionTo(foe.location));
-//		}
-//		averageDirection /= (double)directions.size();
-//
-//		Direction averageDirectionAwayFromFoes = directions.get((int)averageDirection).opposite();
-
 		//get the average direction to them
-		//ArrayList<Direction> listOfDirections = Utility.arrayListOfDirections();
 		int averageDirection = 0;
 		for(RobotInfo foe : foes)
 		{
