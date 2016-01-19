@@ -15,7 +15,7 @@ public class Archon
 	//build order
 	//public static RobotType[] buildOrder = {RobotType.SCOUT, RobotType.SOLDIER, RobotType.GUARD, RobotType.SOLDIER, RobotType.TURRET, RobotType.SOLDIER, 
 	//RobotType.SOLDIER, RobotType.TURRET, RobotType.GUARD, RobotType.VIPER};
-	public static RobotType[] buildOrder = {RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.TURRET, RobotType.TURRET, RobotType.SOLDIER};
+	public static RobotType[] buildOrder = {RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.TURRET, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER, RobotType.SOLDIER};
 	public static int currentBuildNumber = 0;
 	public static int numberOfInitialArchons;
 	public static Random rand;
@@ -57,6 +57,7 @@ public class Archon
 					goal = null;
 				}
 			}
+			rc.setIndicatorString(0, "NOT");
 
 			//EVASION CODE
 			RobotInfo[] foes = rc.senseHostileRobots(rc.getLocation(), RobotType.ARCHON.sensorRadiusSquared);
@@ -73,6 +74,7 @@ public class Archon
 					if(currentLocation.distanceSquaredTo(foeLocation) > foe.type.attackRadiusSquared - 1)
 					{
 						//moveToLocation(findSaferLocation(foes));//don't want to do anything else if you're evading
+						rc.setIndicatorString(0, "Running away");
 						evadeNearbyFoes(foes);
 						break;
 					}
@@ -127,50 +129,64 @@ public class Archon
 		MapLocation currentLocation = rc.getLocation();
 		ArrayList<Direction> directions = Utility.arrayListOfDirections();
 
-		//get the average direction to the enemies
-		double averageDirection = 0;
+//		//get the average direction to the enemies
+//		double averageDirection = 0;
+//		for(RobotInfo foe : foes)
+//		{
+//			averageDirection += directions.indexOf(currentLocation.directionTo(foe.location));
+//		}
+//		averageDirection /= (double)directions.size();
+//
+//		Direction averageDirectionAwayFromFoes = directions.get((int)averageDirection).opposite();
+
+		//get the average direction to them
+		//ArrayList<Direction> listOfDirections = Utility.arrayListOfDirections();
+		int averageDirection = 0;
 		for(RobotInfo foe : foes)
 		{
 			averageDirection += directions.indexOf(currentLocation.directionTo(foe.location));
 		}
-		averageDirection /= (double)directions.size();
-
-		Direction averageDirectionAwayFromFoes = directions.get((int)averageDirection).opposite();
-		
-		if(rc.isCoreReady())
+		if(foes.length > 0)
 		{
-			if(rc.canMove(averageDirectionAwayFromFoes))
-			{
-				rc.move(averageDirectionAwayFromFoes);
-			}
-			else//your core is ready, but it seems like that direction is blocked
-			{
-				//try the other directions starting with that direction
-				Direction rotatedRight = averageDirectionAwayFromFoes.rotateRight();
-				Direction rotatedLeft = averageDirectionAwayFromFoes.rotateLeft();
-				int tries = 0;
+			averageDirection /= foes.length;
+			Direction directionToEnemies = directions.get(averageDirection);
 
-				//only go one loop around
-				while(tries < 4)
+			Direction averageDirectionAwayFromFoes = directionToEnemies.opposite();
+			
+			if(rc.isCoreReady())
+			{
+				if(rc.canMove(averageDirectionAwayFromFoes))
 				{
-					if(rc.canMove(rotatedRight))
+					rc.move(averageDirectionAwayFromFoes);
+				}
+				else//your core is ready, but it seems like that direction is blocked
+				{
+					//try the other directions starting with that direction
+					Direction rotatedRight = averageDirectionAwayFromFoes.rotateRight();
+					Direction rotatedLeft = averageDirectionAwayFromFoes.rotateLeft();
+					int tries = 0;
+
+					//only go one loop around
+					while(tries < 4)
 					{
-						rc.move(rotatedRight);
-						return;
-					}
-					else if(rc.canMove(rotatedLeft))
-					{
-						rc.move(rotatedLeft);
-						return;
-					}
-					else
-					{
-						tries++;
+						if(rc.canMove(rotatedRight))
+						{
+							rc.move(rotatedRight);
+							return;
+						}
+						else if(rc.canMove(rotatedLeft))
+						{
+							rc.move(rotatedLeft);
+							return;
+						}
+						else
+						{
+							tries++;
+						}
 					}
 				}
 			}
 		}
-
 	}
 
 	//find nearby parts and make that the new goal
