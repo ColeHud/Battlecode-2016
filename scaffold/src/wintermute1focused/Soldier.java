@@ -300,7 +300,7 @@ public class Soldier
 					{
 						goalLoc = chosenSignalLoc;
 						dirToMove =  myLoc.directionTo(goalLoc);
-						roundsLeft = (int) Math.sqrt(myLoc.distanceSquaredTo(goalLoc)); //how many rounds to pursue goal for, not sure what would be better
+						roundsLeft = (int) Math.sqrt(smallestCloseness); //how many rounds to pursue goal for, not sure what would be better
 						continue;
 					}
 					else //follow friends
