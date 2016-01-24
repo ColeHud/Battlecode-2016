@@ -1,4 +1,4 @@
-package wintermute1focused;
+package wintermute1focusedbetterdirs;
 import battlecode.common.*;
 
 import java.util.*;
@@ -25,7 +25,7 @@ public class Soldier
 	public static int numDirections = directions.length;
 
 	public static int kitingTolerance = 5; //at 3 starts bouncing a little more, even at 4 bounces a little, at 5 none at all
-	
+
 	//right now no moving
 	public static double probMove = 0.4; //how often to move if can, maybe make lower for protectors?
 
@@ -42,7 +42,7 @@ public class Soldier
 
 	public static int friendFindingRadiusSquared = 49;
 	public static int roundsToFollowAFriend = 1;
-	
+
 	public static void run() throws GameActionException
 	{
 		rc = RobotPlayer.rc;
@@ -82,51 +82,8 @@ public class Soldier
 		if(makerArchon != null)
 		{
 			dirToMove = makerArchon.location.directionTo(myLoc); //away from archon
-			while(movesAwayFromArchon > 0)
-			{
-				if(rc.isCoreReady())
-				{
-					//movement code copied below (a little specialized)
-					int timesRotated = 0;
-					boolean done = false;
-					boolean turnLeft = rand.nextBoolean(); //if true keep turning left, if false keep turning right
-					//start in a direction, choose a random way to turn, turn that way until you've tried all the directions
-					while((timesRotated < numDirections) && (! done))
-					{
-						double rubble = rc.senseRubble(myLoc.add(dirToMove));
-						if(rubble >= GameConstants.RUBBLE_OBSTRUCTION_THRESH)
-						{
-							if(rubble >= tooMuchRubble && Math.random() < probIgnoreRubbleIfNotTooMuch) //try another direction
-							{
-								tooMuchRubble *= rubbleToleranceGrowthFactor;
-								dirToMove = turn(dirToMove, turnLeft);
-								timesRotated ++;
-							}
-							else //clear the rubble
-							{
-								rc.clearRubble(dirToMove);
-								done = true;
-							}
-						}
-						else
-						{
-							if(rc.canMove(dirToMove))
-							{
-								rc.move(dirToMove);
-								done = true;
-								myLoc = rc.getLocation();
-							}
-							else
-							{
-								dirToMove = turn(dirToMove, turnLeft);
-								timesRotated ++;
-							}
-						}
-					}
-					movesAwayFromArchon --;
-				}
-				Clock.yield();
-			}
+			goalLoc = myLoc.add(dirToMove, movesAwayFromArchon);
+			roundsLeft = 2*movesAwayFromArchon;
 		}
 
 		while(true)
@@ -136,7 +93,7 @@ public class Soldier
 			if(anyFoesToAttack)
 			{
 				//could prioritize guys to attack here, archons, all that
-				
+
 				if(rc.isWeaponReady()) //maybe different flow here?
 				{
 					RobotInfo[] foes = rc.senseHostileRobots(myLoc, RobotPlayer.myType.attackRadiusSquared);
@@ -145,14 +102,14 @@ public class Soldier
 					{
 						//could getClosestRobot
 						RobotInfo targetFoe = getClosestRobot(foes, myLoc);
-						
+
 						//or getMinHealthRobot here
 						//RobotInfo targetFoe = getMinHealthRobot(foes);
 
 						//kiting in a while loop
 						//other kiting implementations may be much better!
 						//move until you're just at the edge of your own attack range, and then fire!
-						
+
 						if(myLoc.distanceSquaredTo(targetFoe.location) < RobotPlayer.myType.attackRadiusSquared - kitingTolerance)
 						{
 							//set a countdown for kiting? Just fire at some point? In case cornered?
@@ -162,13 +119,16 @@ public class Soldier
 								{
 									//should be done after all this?
 									targetFoe = rc.senseRobot(targetFoe.ID);
+
 									dirToMove = targetFoe.location.directionTo(myLoc); //away from foe
+									Direction leftDir = dirToMove;
+									Direction rightDir = dirToMove;
+									boolean turnLeft = Math.random() < 0.5; //if true keep turning left, if false keep turning right
+									int directionsTried = 1;
 
-									int timesRotated = 0;
 									boolean done = false; //whether or not has moved or cleared some rubble
-									boolean turnLeft = rand.nextBoolean(); //if true keep turning left, if false keep turning right
 
-									while((timesRotated < numDirections) && (! done))
+									while((directionsTried < numDirections - 1) && (! done)) //don't try dir towards foe
 									{
 										if(rc.isCoreReady() && rc.canMove(dirToMove))
 										{
@@ -181,8 +141,33 @@ public class Soldier
 											//if there's rubble, we don't try to clean it up
 											//digging is too slow for a fight
 
-											dirToMove = turn(dirToMove, turnLeft);
-											timesRotated ++;
+											directionsTried++;
+											if(turnLeft)
+											{
+												leftDir = leftDir.rotateLeft();
+												dirToMove = leftDir;
+												if(directionsTried % 2 == 0)
+												{
+													turnLeft = Math.random() < 0.5;
+												}
+												else
+												{
+													turnLeft = false;
+												}
+											}
+											else
+											{
+												rightDir = rightDir.rotateRight();
+												dirToMove = rightDir;
+												if(directionsTried % 2 == 0)
+												{
+													turnLeft = Math.random() < 0.5;
+												}
+												else
+												{
+													turnLeft = true;
+												}
+											}
 										}
 									}
 
@@ -277,19 +262,19 @@ public class Soldier
 					//follow signal closest to you
 					Signal[] signals = rc.emptySignalQueue();
 					MapLocation chosenSignalLoc = null;
-					double smallestCloseness = 0;
+					double smallestCloseness = -1;
 					for(Signal signal : signals)
 					{						
 						//right now follows only own team's signals to group up
 						//could follow enemy team signals too to kill messengers
 						//but seems to spread out group too much
-						
+
 						if((signal.getMessage() == null) && (signal.getTeam() == myTeam))
 						{
 							MapLocation signalLoc = signal.getLocation();
 							double signalCloseness = myLoc.distanceSquaredTo(signalLoc);
 
-							if((smallestCloseness == 0) || (signalCloseness < smallestCloseness))
+							if((smallestCloseness == -1) || (signalCloseness < smallestCloseness))
 							{
 								chosenSignalLoc = signalLoc;
 								smallestCloseness = signalCloseness;
@@ -300,7 +285,7 @@ public class Soldier
 					{
 						goalLoc = chosenSignalLoc;
 						dirToMove =  myLoc.directionTo(goalLoc);
-						roundsLeft = (int) Math.sqrt(smallestCloseness); //how many rounds to pursue goal for, not sure what would be better
+						roundsLeft = (int) Math.sqrt(2*smallestCloseness); //how many rounds to pursue goal for, not sure what would be better
 						continue;
 					}
 					else //follow friends
@@ -327,10 +312,14 @@ public class Soldier
 						else
 						{
 							dirToMove =  myLoc.directionTo(goalLoc);
-							int timesRotated = 0;
+							Direction leftDir = dirToMove;
+							Direction rightDir = dirToMove;
+							boolean turnLeft = Math.random() < 0.5; //if true keep turning left, if false keep turning right
+							int directionsTried = 1;
+
 							boolean done = false; //whether or not has moved or cleared some rubble
-							boolean turnLeft = rand.nextBoolean(); //if true keep turning left, if false keep turning right
-							while((timesRotated < numDirections) && (! done))
+
+							while((directionsTried < numDirections) && (! done))
 							{
 								double rubble = rc.senseRubble(myLoc.add(dirToMove));
 								if(rubble >= GameConstants.RUBBLE_OBSTRUCTION_THRESH)
@@ -338,8 +327,33 @@ public class Soldier
 									if(rubble >= tooMuchRubble && Math.random() < probIgnoreRubbleIfNotTooMuch) //try another direction
 									{
 										tooMuchRubble *= rubbleToleranceGrowthFactor;
-										dirToMove = turn(dirToMove, turnLeft);
-										timesRotated ++;
+										directionsTried++;
+										if(turnLeft)
+										{
+											leftDir = leftDir.rotateLeft();
+											dirToMove = leftDir;
+											if(directionsTried % 2 == 0)
+											{
+												turnLeft = Math.random() < 0.5;
+											}
+											else
+											{
+												turnLeft = false;
+											}
+										}
+										else
+										{
+											rightDir = rightDir.rotateRight();
+											dirToMove = rightDir;
+											if(directionsTried % 2 == 0)
+											{
+												turnLeft = Math.random() < 0.5;
+											}
+											else
+											{
+												turnLeft = true;
+											}
+										}
 									}
 									else //clear the rubble
 									{
@@ -358,8 +372,33 @@ public class Soldier
 									}
 									else
 									{
-										dirToMove = turn(dirToMove, turnLeft);
-										timesRotated ++;
+										directionsTried++;
+										if(turnLeft)
+										{
+											leftDir = leftDir.rotateLeft();
+											dirToMove = leftDir;
+											if(directionsTried % 2 == 0)
+											{
+												turnLeft = Math.random() < 0.5;
+											}
+											else
+											{
+												turnLeft = false;
+											}
+										}
+										else
+										{
+											rightDir = rightDir.rotateRight();
+											dirToMove = rightDir;
+											if(directionsTried % 2 == 0)
+											{
+												turnLeft = Math.random() < 0.5;
+											}
+											else
+											{
+												turnLeft = true;
+											}
+										}
 									}
 								}
 							}
@@ -386,7 +425,7 @@ public class Soldier
 		}
 		return minHealthRobot;
 	}
-	
+
 	public static RobotInfo getClosestRobot(RobotInfo[] robots, MapLocation myLoc)
 	{
 		RobotInfo closestRobot = null;

@@ -1,4 +1,4 @@
-package wintermute1focused;
+package wintermute1focusedavgkiting;
 import battlecode.common.*;
 
 import java.util.*;
@@ -412,6 +412,29 @@ public class Soldier
 		else
 		{
 			return dir.rotateRight();
+		}
+	}
+	
+	//robots list can't be empty
+	public static MapLocation getAverageLoc(RobotInfo[] robots)
+	{
+		int x_sum = 0;
+		int y_sum = 0;
+		if(robots.length > 0)
+		{
+			for(RobotInfo robot : robots)
+			{
+				MapLocation robotLoc = robot.location;
+				x_sum += robotLoc.x;
+				y_sum += robotLoc.y;
+			}
+			int x = x_sum / robots.length;
+			int y = y_sum / robots.length;
+			return new MapLocation(x, y);
+		}
+		else
+		{
+			return null;
 		}
 	}
 }

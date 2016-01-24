@@ -1,4 +1,4 @@
-package wintermute1focused;
+package wintermute1focusedclone;
 import battlecode.common.*;
 
 import java.util.*;
@@ -259,7 +259,7 @@ public class Soldier
 						//could do min thing here too, but $$$?
 						if(foesYouCanOnlySee.length > 0)
 						{
-							RobotInfo targetFoe = foesYouCanOnlySee[0];
+							RobotInfo targetFoe = getClosestRobot(foesYouCanOnlySee, myLoc);
 							goalLoc = targetFoe.location;
 							roundsLeft = (int) Math.sqrt(myLoc.distanceSquaredTo(goalLoc));
 						}
@@ -300,7 +300,7 @@ public class Soldier
 					{
 						goalLoc = chosenSignalLoc;
 						dirToMove =  myLoc.directionTo(goalLoc);
-						roundsLeft = (int) Math.sqrt(smallestCloseness); //how many rounds to pursue goal for, not sure what would be better
+						roundsLeft = (int) Math.sqrt(myLoc.distanceSquaredTo(goalLoc)); //how many rounds to pursue goal for, not sure what would be better
 						continue;
 					}
 					else //follow friends
@@ -308,7 +308,7 @@ public class Soldier
 						RobotInfo[] friends = rc.senseNearbyRobots(friendFindingRadiusSquared, myTeam);
 						if(friends.length > 0)
 						{
-							goalLoc = friends[0].location; //should choose closest, something else?
+							goalLoc = getClosestRobot(friends, myLoc).location; //should choose closest, something else?
 							roundsLeft = roundsToFollowAFriend;
 						}
 					}
