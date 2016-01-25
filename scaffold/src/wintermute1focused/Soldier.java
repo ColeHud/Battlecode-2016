@@ -33,38 +33,40 @@ public class Soldier
 	 * soldiers don't try to clear it, increases the more a
 	 * specific soldier sees lots of rubble */
 	public static double startTooMuchRubble = 500;
-
+	//every time you decide to go around rubble, multiply rubble tolerance by this
+	//so if there's really lots and lots of rubble, eventually you'll go through it
+	public static double rubbleToleranceGrowthFactor = 2; 
+	
 	public static int foeSignalRadiusSquared = 1000; //play around with this some
 	public static double probSignal = 0.15;
 
-	public static double probClump = 0.05;
+	public static double probClump = 0.1;
 	public static int friendFindingRadiusSquared = RobotPlayer.myType.sensorRadiusSquared;
 	public static int roundsToFollowAFriend = 1;
 
+	//how many rounds to spend trying to get to a goal location
+	//below value is reasonable but never used, actually depends on initial distance to goal
+	public static int roundsLeft = 50;
+	
 	public static int[] friendlyArchonIDs = {-1, -1, -1, -1, -1, -1};
 
+	//how far away to be from archon
+	public static int movesAwayFromArchon = 3; //could make this increase as more soldiers made?
+	
 	public static void run() throws GameActionException
 	{
 		rc = RobotPlayer.rc;
 		Team myTeam = rc.getTeam();
-		rand = new Random(rc.getID()); //make sure this works
+		rand = new Random(rc.getID());
 
 		//how much rubble there has to be so that this soldier won't try to clear it
 		double tooMuchRubble = startTooMuchRubble;
 
-		//every time you decide to go around rubble, multiply rubble tolerance by this
-		//so if there's really lots and lots of rubble, eventually you'll go through it
-		double rubbleToleranceGrowthFactor = 2; 
-
 		MapLocation goalLoc = null;
 		Direction dirToMove = Direction.NONE;
-		//how many rounds to spend trying to get to a goal location
-		//below value is reasonable but never used, depends on initial distance to goal
-		int roundsLeft = 50;
 
 		boolean anyFoesToAttack = true; //if false, then move around and do other non-killing stuff
 		MapLocation myLoc = rc.getLocation();
-		int movesAwayFromArchon = 3; //could make this increase as more soldiers made?
 
 		//ENTERING THE ACTUAL CODE
 
@@ -102,7 +104,7 @@ public class Soldier
 							else if(rc.isWeaponReady())
 							{
 								rc.attackLocation(targetFoe.location);
-								if(Math.random() < probSignal)
+								if(rand.nextFloat() < probSignal)
 								{
 									rc.broadcastSignal(foeSignalRadiusSquared);
 								}
@@ -126,7 +128,7 @@ public class Soldier
 									dirToMove = targetFoe.location.directionTo(myLoc); //away from foe
 									Direction leftDir = dirToMove;
 									Direction rightDir = dirToMove;
-									boolean turnLeft = Math.random() < 0.5; //if true keep turning left, if false keep turning right
+									boolean turnLeft = rand.nextFloat() < 0.5; //if true keep turning left, if false keep turning right
 									int directionsTried = 1;
 
 									boolean done = false; //whether or not has moved or cleared some rubble
@@ -151,7 +153,7 @@ public class Soldier
 												dirToMove = leftDir;
 												if(directionsTried % 2 == 0)
 												{
-													turnLeft = Math.random() < 0.5;
+													turnLeft = rand.nextFloat() < 0.5;
 												}
 												else
 												{
@@ -164,7 +166,7 @@ public class Soldier
 												dirToMove = rightDir;
 												if(directionsTried % 2 == 0)
 												{
-													turnLeft = Math.random() < 0.5;
+													turnLeft = rand.nextFloat() < 0.5;
 												}
 												else
 												{
@@ -214,7 +216,7 @@ public class Soldier
 									if(rc.canAttackLocation(targetFoe.location))
 									{
 										rc.attackLocation(targetFoe.location);
-										if(Math.random() < probSignal)
+										if(rand.nextFloat() < probSignal)
 										{
 											rc.broadcastSignal(foeSignalRadiusSquared);
 										}
@@ -231,7 +233,7 @@ public class Soldier
 							if(rc.canSenseRobot(targetFoe.ID) && rc.canAttackLocation(targetFoe.location)) //may be $$$, but stops some misfirings
 							{
 								rc.attackLocation(targetFoe.location);
-								if(Math.random() < probSignal)
+								if(rand.nextFloat() < probSignal)
 								{
 									rc.broadcastSignal(foeSignalRadiusSquared);
 								}
@@ -321,7 +323,7 @@ public class Soldier
 							RobotInfo nearbyFriendlyArchon = findFriendlyArchon(friends, myTeam);
 							if(nearbyFriendlyArchon == null) //no nearby friendly archons
 							{
-								if(Math.random() < probClump)
+								if(rand.nextFloat() < probClump)
 								{
 									goalLoc = friends[0].location; //should choose closest, something else?
 									roundsLeft = roundsToFollowAFriend;
@@ -353,7 +355,7 @@ public class Soldier
 							dirToMove =  myLoc.directionTo(goalLoc);
 							Direction leftDir = dirToMove;
 							Direction rightDir = dirToMove;
-							boolean turnLeft = Math.random() < 0.5; //if true keep turning left, if false keep turning right
+							boolean turnLeft = rand.nextFloat() < 0.5; //if true keep turning left, if false keep turning right
 							int directionsTried = 1;
 
 							boolean done = false; //whether or not has moved or cleared some rubble
@@ -363,7 +365,7 @@ public class Soldier
 								double rubble = rc.senseRubble(myLoc.add(dirToMove));
 								if(rubble >= GameConstants.RUBBLE_OBSTRUCTION_THRESH)
 								{
-									if(rubble >= tooMuchRubble && Math.random() < probIgnoreRubbleIfNotTooMuch) //try another direction
+									if(rubble >= tooMuchRubble && rand.nextFloat() < probIgnoreRubbleIfNotTooMuch) //try another direction
 									{
 										tooMuchRubble *= rubbleToleranceGrowthFactor;
 										directionsTried++;
@@ -373,7 +375,7 @@ public class Soldier
 											dirToMove = leftDir;
 											if(directionsTried % 2 == 0)
 											{
-												turnLeft = Math.random() < 0.5;
+												turnLeft = rand.nextFloat() < 0.5;
 											}
 											else
 											{
@@ -386,7 +388,7 @@ public class Soldier
 											dirToMove = rightDir;
 											if(directionsTried % 2 == 0)
 											{
-												turnLeft = Math.random() < 0.5;
+												turnLeft = rand.nextFloat() < 0.5;
 											}
 											else
 											{
@@ -418,7 +420,7 @@ public class Soldier
 											dirToMove = leftDir;
 											if(directionsTried % 2 == 0)
 											{
-												turnLeft = Math.random() < 0.5;
+												turnLeft = rand.nextFloat() < 0.5;
 											}
 											else
 											{
@@ -431,7 +433,7 @@ public class Soldier
 											dirToMove = rightDir;
 											if(directionsTried % 2 == 0)
 											{
-												turnLeft = Math.random() < 0.5;
+												turnLeft = rand.nextFloat() < 0.5;
 											}
 											else
 											{
