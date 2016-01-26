@@ -64,6 +64,11 @@ public class Turret
 			//ATTACK
 			if(nearbyFoes.size() > 0)
 			{
+				if(rc.getType() == RobotType.TTM)
+				{
+					rc.unpack();
+				}
+				
 				MapLocation currentLocation = rc.getLocation();
 				MapLocation locationToAttack = null;
 				int farthestDistance = 0;
@@ -171,7 +176,6 @@ public class Turret
 
 					if(rc.isCoreReady() && rc.canMove(candidateDirection) && slugTrail.contains(locationInDirection) == false && rubbleAtLocation < GameConstants.RUBBLE_OBSTRUCTION_THRESH)//move there then return
 					{
-						rc.setIndicatorString(0, "Trying to move");
 						rc.move(candidateDirection);
 						return;
 					}
@@ -194,7 +198,6 @@ public class Turret
 
 						if(rc.isCoreReady() && rc.canMove(candidateDirection) && slugTrail.contains(locationInDirection) == false && rubbleAtLocation < GameConstants.RUBBLE_OBSTRUCTION_THRESH)//move there then return
 						{
-							rc.setIndicatorString(0, "Trying to move");
 							rc.move(candidateDirection);
 							return;
 						}

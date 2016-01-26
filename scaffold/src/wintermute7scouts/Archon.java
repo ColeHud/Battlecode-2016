@@ -57,13 +57,12 @@ public class Archon
 					goal = null;
 				}
 			}
-			rc.setIndicatorString(0, "NOT");
 
 			//EVASION CODE
 			RobotInfo[] foes = rc.senseHostileRobots(rc.getLocation(), RobotType.ARCHON.sensorRadiusSquared);
 			RobotInfo[] friends = rc.senseNearbyRobots(RobotType.ARCHON.sensorRadiusSquared, rc.getTeam());
 			
-			if(foes.length > 0)
+			if(foes.length > 0 && rc.getRoundNum() % 4 == 0)
 			{
 				rc.broadcastSignal(25);
 			}
@@ -78,7 +77,6 @@ public class Archon
 					if(currentLocation.distanceSquaredTo(foeLocation) > foe.type.attackRadiusSquared - 1)
 					{
 						//moveToLocation(findSaferLocation(foes));//don't want to do anything else if you're evading
-						rc.setIndicatorString(0, "Running away");
 						moveToLocation(findSaferLocation());
 						break;
 					}
@@ -91,7 +89,6 @@ public class Archon
 				double random = rand.nextFloat();
 				if(random <= chancesOfBuilding && canBuildSomething())//you get to build! :)
 				{
-					rc.setIndicatorString(0, "Building");
 					buildStrategicRobot();
 					continue;
 				}
@@ -99,12 +96,10 @@ public class Archon
 				{
 					if(goal != null)
 					{
-						rc.setIndicatorString(0, "Moving");
 						moveToLocation(goal);
 					}
 					else
 					{
-						rc.setIndicatorString(0, "Finding new parts or neutral bots");
 						//GO ACTIVATE NEUTRAL BOTS
 						RobotInfo[] neutralBots = rc.senseNearbyRobots(RobotType.ARCHON.sensorRadiusSquared, Team.NEUTRAL);
 						if(neutralBots.length > 0)
@@ -196,7 +191,7 @@ public class Archon
 			for(MapLocation partsLocation : nearbyParts)
 			{
 				double partsAtLocation = rc.senseParts(partsLocation);
-				if(partsAtLocation > mostParts)//there are a lot of parts and this isn't a goal to avoid
+				if(partsAtLocation > mostParts && goalsToAvoid.contains(partsLocation) == false)//there are a lot of parts and this isn't a goal to avoid
 				{
 					mostParts = partsAtLocation;
 					locationWithMostParts = partsLocation;
@@ -210,7 +205,6 @@ public class Archon
 		}
 		else
 		{
-			rc.setIndicatorString(2, "Moving to a close friend");
 			RobotInfo[] nearbyFriends = rc.senseNearbyRobots(RobotType.ARCHON.sensorRadiusSquared, rc.getTeam());
 			
 			if(nearbyFriends.length > 0)
@@ -364,7 +358,6 @@ public class Archon
 
 					if(rc.canMove(candidateDirection) && slugTrail.contains(locationInDirection) == false && rubbleAtLocation < GameConstants.RUBBLE_OBSTRUCTION_THRESH)//move there then return
 					{
-						rc.setIndicatorString(0, "Trying to move");
 						rc.move(candidateDirection);
 						return;
 					}
@@ -387,7 +380,6 @@ public class Archon
 
 						if(rc.canMove(candidateDirection) && slugTrail.contains(locationInDirection) == false && rubbleAtLocation < GameConstants.RUBBLE_OBSTRUCTION_THRESH)//move there then return
 						{
-							rc.setIndicatorString(0, "Trying to move");
 							rc.move(candidateDirection);
 							return;
 						}
