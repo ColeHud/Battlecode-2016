@@ -16,6 +16,17 @@ public class Scout
 		rand = new Random(rc.getID());
 		while(true)
 		{
+			//broadcast if you see an enemy
+			RobotInfo[] nearbyEnemies = rc.senseHostileRobots(rc.getLocation(), RobotType.SCOUT.sensorRadiusSquared);
+			if(nearbyEnemies.length > 0 && rc.getRoundNum()%4 == 0)
+			{
+				rc.broadcastSignal(36);
+			}
+			
+			
+			
+			
+			
 			turretToGiveVision = null;
 			
 			//find all the nearest turrets
@@ -60,23 +71,26 @@ public class Scout
 			}
 			else//if there are no turrets nearby, go to the nearest friend
 			{
-				MapLocation currentLocation = rc.getLocation();
-				int distanceToClosestFriend = 100000;
-				RobotInfo closestFriend = null;
-				
-				for(RobotInfo friend : nearbyFriends)
+				if(nearbyFriends.length > 0)
 				{
-					int distance = currentLocation.distanceSquaredTo(friend.location);
-					if(distance < distanceToClosestFriend)
+					MapLocation currentLocation = rc.getLocation();
+					int distanceToClosestFriend = 100000;
+					RobotInfo closestFriend = null;
+					
+					for(RobotInfo friend : nearbyFriends)
 					{
-						distanceToClosestFriend = distance;
-						closestFriend = friend;
+						int distance = currentLocation.distanceSquaredTo(friend.location);
+						if(distance < distanceToClosestFriend)
+						{
+							distanceToClosestFriend = distance;
+							closestFriend = friend;
+						}
 					}
-				}
-				
-				if(closestFriend != null)
-				{
-					moveToLocation(closestFriend.location);
+					
+					if(closestFriend != null)
+					{
+						moveToLocation(closestFriend.location);
+					}
 				}
 			}
 
@@ -134,7 +148,6 @@ public class Scout
 
 					if(rc.canMove(candidateDirection) && slugTrail.contains(locationInDirection) == false && rubbleAtLocation < GameConstants.RUBBLE_OBSTRUCTION_THRESH)//move there then return
 					{
-						rc.setIndicatorString(0, "Trying to move");
 						rc.move(candidateDirection);
 						return;
 					}
@@ -157,7 +170,6 @@ public class Scout
 
 						if(rc.canMove(candidateDirection) && slugTrail.contains(locationInDirection) == false && rubbleAtLocation < GameConstants.RUBBLE_OBSTRUCTION_THRESH)//move there then return
 						{
-							rc.setIndicatorString(0, "Trying to move");
 							rc.move(candidateDirection);
 							return;
 						}

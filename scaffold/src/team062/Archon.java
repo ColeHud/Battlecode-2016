@@ -57,20 +57,18 @@ public class Archon
 					goal = null;
 				}
 			}
-			rc.setIndicatorString(0, "NOT");
 
 			//EVASION CODE
 			RobotInfo[] foes = rc.senseHostileRobots(rc.getLocation(), RobotType.ARCHON.sensorRadiusSquared);
 			RobotInfo[] friends = rc.senseNearbyRobots(RobotType.ARCHON.sensorRadiusSquared, rc.getTeam());
 			
-			if(foes.length > 0)
+			if(foes.length > 0 && rc.getRoundNum() % 4 == 0)
 			{
 				rc.broadcastSignal(25);
 			}
 
-			//evade if there are at least 6 more foes than friends
 			int numberOfFoesNearAttackRadius = 0;
-			if(foes.length > friends.length)
+			if(foes.length > 0)
 			{
 				for(RobotInfo foe : foes)
 				{
@@ -79,7 +77,6 @@ public class Archon
 					if(currentLocation.distanceSquaredTo(foeLocation) > foe.type.attackRadiusSquared - 1)
 					{
 						//moveToLocation(findSaferLocation(foes));//don't want to do anything else if you're evading
-						rc.setIndicatorString(0, "Running away");
 						moveToLocation(findSaferLocation());
 						break;
 					}
@@ -92,7 +89,6 @@ public class Archon
 				double random = rand.nextFloat();
 				if(random <= chancesOfBuilding && canBuildSomething())//you get to build! :)
 				{
-					rc.setIndicatorString(0, "Building");
 					buildStrategicRobot();
 					continue;
 				}
@@ -100,12 +96,10 @@ public class Archon
 				{
 					if(goal != null)
 					{
-						rc.setIndicatorString(0, "Moving");
 						moveToLocation(goal);
 					}
 					else
 					{
-						rc.setIndicatorString(0, "Finding new parts or neutral bots");
 						//GO ACTIVATE NEUTRAL BOTS
 						RobotInfo[] neutralBots = rc.senseNearbyRobots(RobotType.ARCHON.sensorRadiusSquared, Team.NEUTRAL);
 						if(neutralBots.length > 0)
@@ -207,6 +201,34 @@ public class Archon
 			{
 				goal = locationWithMostParts;
 				goalIsNeutralBot = false;
+			}
+		}
+		else
+		{
+			RobotInfo[] nearbyFriends = rc.senseNearbyRobots(RobotType.ARCHON.sensorRadiusSquared, rc.getTeam());
+			
+			if(nearbyFriends.length > 0)
+			{
+				//find the nearest friend and make that the goal
+				int shortestDistance = 100000;
+				RobotInfo closestFriend = null;
+				
+				MapLocation currentLocation = rc.getLocation();
+				for(RobotInfo friend : nearbyFriends)
+				{
+					int distance = currentLocation.distanceSquaredTo(friend.location);
+					if(distance < shortestDistance)
+					{
+						shortestDistance = distance;
+						closestFriend = friend;
+					}
+				}
+				
+				if(closestFriend != null)
+				{
+					goal = closestFriend.location;
+					goalIsNeutralBot = false;
+				}
 			}
 		}
 	}
@@ -336,7 +358,6 @@ public class Archon
 
 					if(rc.canMove(candidateDirection) && slugTrail.contains(locationInDirection) == false && rubbleAtLocation < GameConstants.RUBBLE_OBSTRUCTION_THRESH)//move there then return
 					{
-						rc.setIndicatorString(0, "Trying to move");
 						rc.move(candidateDirection);
 						return;
 					}
@@ -359,7 +380,6 @@ public class Archon
 
 						if(rc.canMove(candidateDirection) && slugTrail.contains(locationInDirection) == false && rubbleAtLocation < GameConstants.RUBBLE_OBSTRUCTION_THRESH)//move there then return
 						{
-							rc.setIndicatorString(0, "Trying to move");
 							rc.move(candidateDirection);
 							return;
 						}
