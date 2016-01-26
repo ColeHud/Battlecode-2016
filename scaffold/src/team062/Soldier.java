@@ -36,26 +36,27 @@ public class Soldier
 	//every time you decide to go around rubble, multiply rubble tolerance by this
 	//so if there's really lots and lots of rubble, eventually you'll go through it
 	public static double rubbleToleranceGrowthFactor = 2; 
-	
+
 	public static int foeSignalRadiusSquared = 1000; //play around with this some
 	public static double probSignal = 0.15;
 
 	public static double probClump = 0.1;
-	public static int friendFindingRadiusSquared = RobotType.SOLDIER.sensorRadiusSquared;
+	public static int friendFindingRadiusSquared = RobotPlayer.rc.getType().sensorRadiusSquared;
 	public static int roundsToFollowAFriend = 1;
 
 	//how many rounds to spend trying to get to a goal location
 	//below value is reasonable but never used, actually depends on initial distance to goal
 	public static int roundsLeft = 50;
-	
-	public static int[] friendlyArchonIDs = {-1, -1, -1, -1, -1, -1};
+
+	public static int[] friendlyArchonIDs = {-1, -1, -1, -1};
 
 	//how far away to be from archon
 	public static int movesAwayFromArchon = 3; //could make this increase as more soldiers made?
-	
+
 	public static void run() throws GameActionException
 	{
 		rc = RobotPlayer.rc;
+		RobotType myType = rc.getType();
 		Team myTeam = rc.getTeam();
 		rand = new Random(rc.getID());
 
@@ -80,7 +81,7 @@ public class Soldier
 
 				if(rc.isWeaponReady()) //maybe different flow here?
 				{
-					RobotInfo[] foes = rc.senseHostileRobots(myLoc, RobotType.SOLDIER.attackRadiusSquared);
+					RobotInfo[] foes = rc.senseHostileRobots(myLoc, myType.attackRadiusSquared);
 
 					if(foes.length > 0)
 					{
@@ -101,7 +102,7 @@ public class Soldier
 							{
 								rc.move(dirToMove);
 							}
-							else if(rc.isWeaponReady())
+							else if(rc.isWeaponReady() && rc.canAttackLocation(targetFoe.location))
 							{
 								rc.attackLocation(targetFoe.location);
 								if(rand.nextFloat() < probSignal)
@@ -115,10 +116,10 @@ public class Soldier
 						//other kiting implementations may be much better!
 						//move until you're just at the edge of your own attack range, and then fire!
 
-						else if(myLoc.distanceSquaredTo(targetFoe.location) < RobotType.SOLDIER.attackRadiusSquared - kitingTolerance)
+						else if(myLoc.distanceSquaredTo(targetFoe.location) < myType.attackRadiusSquared - kitingTolerance)
 						{
 							//set a countdown for kiting? Just fire at some point? In case cornered?
-							while(myLoc.distanceSquaredTo(targetFoe.location) < RobotType.SOLDIER.attackRadiusSquared - kitingTolerance)
+							while(myLoc.distanceSquaredTo(targetFoe.location) < myType.attackRadiusSquared - kitingTolerance)
 							{
 								if(rc.canSenseRobot(targetFoe.ID))
 								{
@@ -243,7 +244,7 @@ public class Soldier
 					else //no foes in attack range
 					{
 						anyFoesToAttack = false;
-						RobotInfo[] foesYouCanOnlySee = rc.senseHostileRobots(myLoc, RobotType.SOLDIER.sensorRadiusSquared);
+						RobotInfo[] foesYouCanOnlySee = rc.senseHostileRobots(myLoc, myType.sensorRadiusSquared);
 
 						if(foesYouCanOnlySee.length > 0)
 						{
@@ -325,7 +326,7 @@ public class Soldier
 							{
 								if(rand.nextFloat() < probClump)
 								{
-									goalLoc = friends[0].location; //should choose closest, something else?
+									goalLoc = friends[rand.nextInt(friends.length)].location; //should choose closest, something else?
 									roundsLeft = roundsToFollowAFriend;
 								}
 							}
