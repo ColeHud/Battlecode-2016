@@ -196,7 +196,7 @@ public class Archon
 			for(MapLocation partsLocation : nearbyParts)
 			{
 				double partsAtLocation = rc.senseParts(partsLocation);
-				if(partsAtLocation > mostParts && goalsToAvoid.contains(partsLocation) == false)//there are a lot of parts and this isn't a goal to avoid
+				if(partsAtLocation > mostParts)//there are a lot of parts and this isn't a goal to avoid
 				{
 					mostParts = partsAtLocation;
 					locationWithMostParts = partsLocation;
@@ -206,6 +206,35 @@ public class Archon
 			{
 				goal = locationWithMostParts;
 				goalIsNeutralBot = false;
+			}
+		}
+		else
+		{
+			rc.setIndicatorString(2, "Moving to a close friend");
+			RobotInfo[] nearbyFriends = rc.senseNearbyRobots(RobotType.ARCHON.sensorRadiusSquared, rc.getTeam());
+			
+			if(nearbyFriends.length > 0)
+			{
+				//find the nearest friend and make that the goal
+				int shortestDistance = 100000;
+				RobotInfo closestFriend = null;
+				
+				MapLocation currentLocation = rc.getLocation();
+				for(RobotInfo friend : nearbyFriends)
+				{
+					int distance = currentLocation.distanceSquaredTo(friend.location);
+					if(distance < shortestDistance)
+					{
+						shortestDistance = distance;
+						closestFriend = friend;
+					}
+				}
+				
+				if(closestFriend != null)
+				{
+					goal = closestFriend.location;
+					goalIsNeutralBot = false;
+				}
 			}
 		}
 	}
