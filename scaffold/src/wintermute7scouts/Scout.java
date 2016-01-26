@@ -16,6 +16,17 @@ public class Scout
 		rand = new Random(rc.getID());
 		while(true)
 		{
+			//broadcast if you see an enemy
+			RobotInfo[] nearbyEnemies = rc.senseHostileRobots(rc.getLocation(), RobotType.SCOUT.sensorRadiusSquared);
+			if(nearbyEnemies.length > 0 && rc.getRoundNum()%4 == 0)
+			{
+				rc.broadcastSignal(36);
+			}
+			
+			
+			
+			
+			
 			turretToGiveVision = null;
 			
 			//find all the nearest turrets
