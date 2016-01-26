@@ -40,7 +40,7 @@ public class Soldier
 	public static int foeSignalRadiusSquared = 1000; //play around with this some
 	public static double probSignal = 0.15;
 
-	public static int friendFindingRadiusSquared = 49;
+	public static int friendFindingRadiusSquared = RobotPlayer.myType.sensorRadiusSquared;
 	public static int roundsToFollowAFriend = 1;
 	
 	public static void run() throws GameActionException
@@ -143,26 +143,25 @@ public class Soldier
 
 					if(foes.length > 0)
 					{
-						//could getClosestRobot
-						RobotInfo targetFoe = getClosestRobot(foes, myLoc);
+						MapLocation averageFoeLoc = getAverageLoc(foes);
 						
-						//or getMinHealthRobot here
-						//RobotInfo targetFoe = getMinHealthRobot(foes);
-
 						//kiting in a while loop
+						//kite around average loc of foes, attack any foes you can reach when "safe"
 						//other kiting implementations may be much better!
 						//move until you're just at the edge of your own attack range, and then fire!
 						
-						if(myLoc.distanceSquaredTo(targetFoe.location) < RobotPlayer.myType.attackRadiusSquared - kitingTolerance)
+						if(myLoc.distanceSquaredTo(averageFoeLoc) < RobotPlayer.myType.attackRadiusSquared - kitingTolerance)
 						{
 							//set a countdown for kiting? Just fire at some point? In case cornered?
-							while(myLoc.distanceSquaredTo(targetFoe.location) < RobotPlayer.myType.attackRadiusSquared - kitingTolerance)
+							while(myLoc.distanceSquaredTo(averageFoeLoc) < RobotPlayer.myType.attackRadiusSquared - kitingTolerance)
 							{
-								if(rc.canSenseRobot(targetFoe.ID))
+								foes = rc.senseHostileRobots(myLoc, RobotPlayer.myType.attackRadiusSquared);
+								if(foes.length > 0)
 								{
+									averageFoeLoc = getAverageLoc(foes);
+									
 									//should be done after all this?
-									targetFoe = rc.senseRobot(targetFoe.ID);
-									dirToMove = targetFoe.location.directionTo(myLoc); //away from foe
+									dirToMove = averageFoeLoc.directionTo(myLoc); //away from foes
 
 									int timesRotated = 0;
 									boolean done = false; //whether or not has moved or cleared some rubble
@@ -197,11 +196,11 @@ public class Soldier
 								}
 								else
 								{
-									//move back towards enemy, get in range again
+									//move back towards enemies, get in range again
 									dirToMove = dirToMove.opposite();
 									if(rc.canMove(dirToMove))
 									{
-										if(rc.isCoreReady() && rc.canMove(dirToMove))
+										if(rc.isCoreReady())
 										{
 											rc.move(dirToMove);
 											myLoc = rc.getLocation();
@@ -218,12 +217,13 @@ public class Soldier
 									//break; //would make it so only turns in once
 								}
 							}
-
+							
 							if(rc.isWeaponReady())
 							{
-								if(rc.canSenseRobot(targetFoe.ID))
+								foes = rc.senseHostileRobots(myLoc, RobotPlayer.myType.attackRadiusSquared);
+								if(foes.length > 0)
 								{
-									targetFoe = rc.senseRobot(targetFoe.ID);
+									RobotInfo targetFoe = getClosestRobot(foes, myLoc); //could also getMinHealthRobot(foes);
 									if(rc.canAttackLocation(targetFoe.location))
 									{
 										rc.attackLocation(targetFoe.location);
@@ -241,8 +241,9 @@ public class Soldier
 						}
 						else
 						{
-							if(rc.canSenseRobot(targetFoe.ID)) //may be $$$, but stops some misfirings
+							if(foes.length > 0) //may be $$$, but stops some misfirings
 							{
+								RobotInfo targetFoe = getMinHealthRobot(foes); //could also getClosestRobot(foes, myLoc);
 								rc.attackLocation(targetFoe.location);
 							}
 							if(Math.random() < probSignal)
@@ -415,7 +416,6 @@ public class Soldier
 		}
 	}
 	
-	//robots list can't be empty
 	public static MapLocation getAverageLoc(RobotInfo[] robots)
 	{
 		int x_sum = 0;
