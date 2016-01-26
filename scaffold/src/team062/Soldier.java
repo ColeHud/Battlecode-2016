@@ -363,7 +363,9 @@ public class Soldier
 
 							while((directionsTried < numDirections) && (! done))
 							{
-								double rubble = rc.senseRubble(myLoc.add(dirToMove));
+								myLoc = rc.getLocation();
+								MapLocation actionLoc = myLoc.add(dirToMove);
+								double rubble = rc.senseRubble(actionLoc);
 								if(rubble >= GameConstants.RUBBLE_OBSTRUCTION_THRESH)
 								{
 									if(rubble >= tooMuchRubble && rand.nextFloat() < probIgnoreRubbleIfNotTooMuch) //try another direction
@@ -397,7 +399,7 @@ public class Soldier
 											}
 										}
 									}
-									else //clear the rubble
+									else if(rc.onTheMap(actionLoc)) //clear the rubble
 									{
 										rc.clearRubble(dirToMove);
 										done = true;
@@ -405,7 +407,7 @@ public class Soldier
 								}
 								else
 								{
-									if(rc.canMove(dirToMove))
+									if(rc.canMove(dirToMove)) //still on map, try to move
 									{
 										rc.move(dirToMove);
 										roundsLeft --;
